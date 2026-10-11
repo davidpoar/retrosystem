@@ -613,9 +613,12 @@ public class SpectrumGame : Game
         typeStringBuffer = null;
         typeStringCharIndex = 0;
         typeStringFrameDelay = 6;
-        TypeString("J\nLOAD\"\"\n");
+        typeStringBuffer = LOAD_COMMAND_SEQUENCE;
+        typeStringCharIndex = 0;
         typeStringFrameCounter = -75;
     }
+
+    private const string LOAD_COMMAND_SEQUENCE = "\u0010\u0011\u0011\n";
 
     public bool LoadTapeAndAutoType(string path)
     {
@@ -660,6 +663,34 @@ public class SpectrumGame : Game
 
     private void TypeChar(char c)
     {
+        if (c == '\u0001')
+        {
+            PressVirtualKeyById(SpectrumKeyMap.CapsShift);
+            return;
+        }
+        if (c == '\u0002')
+        {
+            PressVirtualKeyById(SpectrumKeyMap.SymbolShift);
+            return;
+        }
+        if (c == '\u0003')
+        {
+            PressVirtualKeyById(SpectrumKeyMap.CapsShift);
+            PressVirtualKeyById(SpectrumKeyMap.SymbolShift);
+            return;
+        }
+        if (c == '\u0010')
+        {
+            PressVirtualKeyById(SpectrumKeyMap.CapsShift);
+            PressVirtualKeyById(SpectrumKeyMap.J);
+            return;
+        }
+        if (c == '\u0011')
+        {
+            PressVirtualKeyById(SpectrumKeyMap.SymbolShift);
+            PressVirtualKeyById(SpectrumKeyMap.Key2);
+            return;
+        }
         if (c == '\n')
         {
             PressVirtualKeyById(SpectrumKeyMap.Enter);
