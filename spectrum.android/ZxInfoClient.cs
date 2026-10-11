@@ -12,7 +12,7 @@ namespace retro.spectrum.android;
 public sealed class ZxInfoClient
 {
     public const string BaseUrl = "https://api.zxinfo.dk/v3";
-    public const string StaticBaseUrl = "https://zxinfo.dk";
+    public const string StaticBaseUrl = "https://worldofspectrum.net";
 
     private readonly HttpClient _http;
 
@@ -83,14 +83,21 @@ public sealed class ZxInfoClient
         }
 
         var allFiles = source.Releases.SelectMany(r => r.Files).ToList();
-        var tzxs = allFiles.Where(f => f.Path.EndsWith(".tzx", StringComparison.OrdinalIgnoreCase)
-                                    || f.Path.EndsWith(".tzx.zip", StringComparison.OrdinalIgnoreCase)).ToList();
-        if (tzxs.Count > 0) return tzxs[0];
+        var candidates = new List<ZxInfoFile>();
+        candidates.AddRange(allFiles.Where(f => f.Path.EndsWith(".tzx.zip", StringComparison.OrdinalIgnoreCase)
+                                              || f.Path.EndsWith(".tzx", StringComparison.OrdinalIgnoreCase)
+                                              || f.Path.EndsWith(".tap.zip", StringComparison.OrdinalIgnoreCase)
+                                              || f.Path.EndsWith(".tap", StringComparison.OrdinalIgnoreCase)));
+        candidates.AddRange(allFiles.Where(f => f.Path.EndsWith(".dsk.zip", StringComparison.OrdinalIgnoreCase)
+                                              || f.Path.EndsWith(".dsk", StringComparison.OrdinalIgnoreCase)));
 
-        var taps = allFiles.Where(f => f.Path.EndsWith(".tap", StringComparison.OrdinalIgnoreCase)
-                                    || f.Path.EndsWith(".tap.zip", StringComparison.OrdinalIgnoreCase)).ToList();
-        if (taps.Count > 0) return taps[0];
-
-        return allFiles.FirstOrDefault();
+        foreach (var f in candidates)
+        {
+            if (f.Path.StartsWith("/pub/"))
+            {
+                return f;
+            }
+        }
+        return candidates.FirstOrDefault();
     }
 }

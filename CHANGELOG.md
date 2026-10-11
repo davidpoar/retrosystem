@@ -2,6 +2,15 @@
 
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
+## [1.3.5] - 2026-10-11
+
+### Corregido
+
+- **CRÍTICO: Las descargas de ZXInfo devolvían 1.8KB de HTML en vez del zip real.** El problema: el cliente apuntaba a `https://zxinfo.dk` (que solo sirve la SPA Vue.js), pero los archivos reales están en `https://worldofspectrum.net/` (el mirror oficial). Probado con `cybernoid`:
+  - ❌ Antes: `zxinfo.dk/pub/.../Cybernoid.tzx.zip` → 1891 bytes (HTML de la SPA)
+  - ✅ Ahora: `worldofspectrum.net/pub/.../Cybernoid.tzx.zip` → 28833 bytes (zip válido)
+- `FindBestDownload` ahora prefiere archivos en `/pub/` (que son los que están realmente disponibles) y excluye paths en `/zxdb/` que devuelven 404.
+
 ## [1.3.2] - 2026-10-11
 
 ### Corregido
