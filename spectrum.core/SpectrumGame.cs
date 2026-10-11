@@ -700,8 +700,8 @@ public class SpectrumGame : Game
                 break;
             case 2:
                 PressVirtualKeyById(SpectrumKeyMap.SymbolShift);
-                PressVirtualKeyById(SpectrumKeyMap.Key2);
-                logger.Info("[TYPE] Action: SymbolShift+2 (\")");
+                PressVirtualKeyById(SpectrumKeyMap.P);
+                logger.Info("[TYPE] Action: SymbolShift+P (\")");
                 break;
             case 3:
                 PressVirtualKeyById(SpectrumKeyMap.Enter);
