@@ -2,6 +2,17 @@
 
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
+## [1.2.1] - 2026-10-11
+
+### Corregido
+
+- **Crash al pulsar "Cargar cinta"**: `TapeLibraryActivity` se cerraba al abrir por dos bugs:
+  1. `RequestWindowFeature(NoTitle)` se llamaba después de `SetContentView` → `AndroidRuntimeException`.
+  2. `Window.SetBackgroundDrawableResource(Resource.Color.background)` recibía un color int en vez de un drawable resource → `Resources$NotFoundException`.
+  Solución: mover `RequestWindowFeature` antes de `SetContentView` y eliminar la llamada errónea (el tema `AppTheme` ya define `windowBackground`).
+- **Robustez**: `OnCreate`, `LoadTapes` y `TapeScanner.ScanAll` ahora capturan excepciones y registran el error con `Dbg.E`, mostrando un `Toast` en lugar de crashear.
+- **Permisos**: `TapeScanner` ahora añade `try/catch` alrededor de cada `Directory.EnumerateFiles` para ignorar directorios sin permiso de lectura en lugar de fallar todo el escaneo.
+
 ## [1.2.0] - 2026-10-11
 
 ### Añadido

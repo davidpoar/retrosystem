@@ -30,84 +30,121 @@ public class TapeLibraryActivity : Activity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        SetContentView(Resource.Layout.activity_tape_library);
 
-        RequestWindowFeature(WindowFeatures.NoTitle);
-        var window = Window;
-        if (window != null)
+        try
         {
-            window.AddFlags(WindowManagerFlags.Fullscreen);
-            window.SetBackgroundDrawableResource(Resource.Color.background);
+            RequestWindowFeature(WindowFeatures.NoTitle);
+        }
+        catch (Exception ex)
+        {
+            Dbg.W($"TapeLibraryActivity: RequestWindowFeature fallo: {ex.Message}");
         }
 
-        _recents = new RecentsManager(this);
-        _listView = FindViewById<ListView>(Resource.Id.listTapes);
-        _emptyView = FindViewById<TextView>(Resource.Id.emptyView);
+        SetContentView(Resource.Layout.activity_tape_library);
 
-        var btnBack = FindViewById<ImageButton>(Resource.Id.btnBack);
-        if (btnBack != null) btnBack.Click += (s, e) => Finish();
+        try
+        {
+            var window = Window;
+            if (window != null)
+            {
+                window.AddFlags(WindowManagerFlags.Fullscreen);
+            }
+        }
+        catch (Exception ex)
+        {
+            Dbg.W($"TapeLibraryActivity: AddFlags fallo: {ex.Message}");
+        }
 
-        var btnBrowse = FindViewById<Button>(Resource.Id.btnBrowse);
-        if (btnBrowse != null) btnBrowse.Click += (s, e) => LaunchFilePicker();
+        try
+        {
+            _recents = new RecentsManager(this);
+            _listView = FindViewById<ListView>(Resource.Id.listTapes);
+            _emptyView = FindViewById<TextView>(Resource.Id.emptyView);
 
-        LoadTapes();
+            var btnBack = FindViewById<ImageButton>(Resource.Id.btnBack);
+            if (btnBack != null) btnBack.Click += (s, e) => Finish();
+
+            var btnBrowse = FindViewById<Button>(Resource.Id.btnBrowse);
+            if (btnBrowse != null) btnBrowse.Click += (s, e) => LaunchFilePicker();
+
+            LoadTapes();
+        }
+        catch (Exception ex)
+        {
+            Dbg.E($"TapeLibraryActivity: init fallo: {ex.Message}\n{ex.StackTrace}");
+            Toast.MakeText(this, $"Error: {ex.Message}", ToastLength.Long)?.Show();
+            Finish();
+        }
     }
 
     private void LoadTapes()
     {
-        var allTapes = TapeScanner.ScanAll(this);
-
-        var recents = _recents?.GetAll() ?? new List<RecentEntry>();
-        var recentPaths = new HashSet<string>(recents.Select(r => r.Path), StringComparer.OrdinalIgnoreCase);
-
-        var items = new List<TapeInfo>();
-        if (recents.Count > 0)
+        try
         {
-            items.Add(new TapeInfo { DisplayName = "★  Recientes" });
-            foreach (var r in recents)
+            var allTapes = TapeScanner.ScanAll(this);
+
+            var recents = _recents?.GetAll() ?? new List<RecentEntry>();
+            var recentPaths = new HashSet<string>(recents.Select(r => r.Path), StringComparer.OrdinalIgnoreCase);
+
+            var items = new List<TapeInfo>();
+            if (recents.Count > 0)
             {
-                if (System.IO.File.Exists(r.Path))
+                items.Add(new TapeInfo { DisplayName = "★  Recientes" });
+                foreach (var r in recents)
                 {
-                    var info = TapeInfoFactory.FromFile(r.Path, isRecent: true,
-                        lastPlayed: DateTimeOffset.FromUnixTimeSeconds(r.LastPlayedUtc).LocalDateTime);
-                    items.Add(info);
+                    if (System.IO.File.Exists(r.Path))
+                    {
+                        var info = TapeInfoFactory.FromFile(r.Path, isRecent: true,
+                            lastPlayed: DateTimeOffset.FromUnixTimeSeconds(r.LastPlayedUtc).LocalDateTime);
+                        items.Add(info);
+                    }
                 }
             }
-        }
 
-        if (allTapes.Count > 0)
-        {
-            items.Add(new TapeInfo { DisplayName = "📂  Todas las cintas" });
-            foreach (var tape in allTapes)
+            if (allTapes.Count > 0)
             {
-                if (!recentPaths.Contains(tape.FilePath))
+                items.Add(new TapeInfo { DisplayName = "📂  Todas las cintas" });
+                foreach (var tape in allTapes)
                 {
-                    items.Add(tape);
+                    if (!recentPaths.Contains(tape.FilePath))
+                    {
+                        items.Add(tape);
+                    }
                 }
             }
+
+            _adapter = new TapeListAdapter(this, items);
+            _adapter.TapeClicked += OnTapeClicked;
+            if (_listView != null) _listView.Adapter = _adapter;
+
+            if (items.Count == 0 || (recents.Count == 0 && allTapes.Count == 0))
+            {
+                if (_emptyView != null)
+                {
+                    _emptyView.Visibility = ViewStates.Visible;
+                    _emptyView.Text = "No se encontraron cintas.\n\n" +
+                                      "Para empezar:\n" +
+                                      "1. Copia un archivo .tap o .tzx a la carpeta\n" +
+                                      "   Download de tu dispositivo, o\n" +
+                                      "2. Pulsa '📂 Buscar...' para elegir cualquier archivo.";
+                }
+                if (_listView != null) _listView.Visibility = ViewStates.Gone;
+            }
+            else
+            {
+                if (_emptyView != null) _emptyView.Visibility = ViewStates.Gone;
+                if (_listView != null) _listView.Visibility = ViewStates.Visible;
+            }
         }
-
-        _adapter = new TapeListAdapter(this, items);
-        _adapter.TapeClicked += OnTapeClicked;
-        if (_listView != null) _listView.Adapter = _adapter;
-
-        if (items.Count == 0 || (recents.Count == 0 && allTapes.Count == 0))
+        catch (Exception ex)
         {
+            Dbg.E($"TapeLibraryActivity: LoadTapes fallo: {ex.Message}\n{ex.StackTrace}");
             if (_emptyView != null)
             {
                 _emptyView.Visibility = ViewStates.Visible;
-                _emptyView.Text = "No se encontraron cintas.\n\n" +
-                                  "Para empezar:\n" +
-                                  "1. Copia un archivo .tap o .tzx a la carpeta\n" +
-                                  "   Download de tu dispositivo, o\n" +
-                                  "2. Pulsa '📂 Buscar...' para elegir cualquier archivo.";
+                _emptyView.Text = $"Error al escanear cintas:\n{ex.Message}";
             }
             if (_listView != null) _listView.Visibility = ViewStates.Gone;
-        }
-        else
-        {
-            if (_emptyView != null) _emptyView.Visibility = ViewStates.Gone;
-            if (_listView != null) _listView.Visibility = ViewStates.Visible;
         }
     }
 
