@@ -2,6 +2,27 @@
 
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
+## [1.1.0] - 2026-10-11
+
+### Añadido
+
+- **ROM 48K incluida en el APK** (descargada automáticamente en build time desde rustzx, con permiso de Amstrad).
+- **Selector de cintas integrado** (Storage Access Framework): botón `📂 LOAD` en la barra superior para abrir el file picker del sistema y elegir cualquier `.tap`/`.tzx` del dispositivo.
+- **Menú en pantalla** (`MenuOverlayView`): opciones de Cargar cinta, Teclear LOAD, Fast Load toggle, Reset, Mostrar/ocultar teclado, Ayuda, Cerrar.
+- **Barra de estado** en tiempo real mostrando el nombre de la cinta y el estado (▶ / ⏸ / ⏹) o un aviso si falta la ROM.
+- **Auto-typing de LOAD""** desde el menú (escribe `LOAD "" + Enter` automáticamente para arrancar el primer programa de la cinta).
+- **Toggle de Fast Load** dinámico (cambia entre carga rápida y carga clásica sin reiniciar).
+- **Script `fetch_rom.ps1`** que descarga la ROM desde rustzx o fuse (16384 bytes exactos) en tiempo de build.
+- **Adaptive icon** Android (`mipmap-anydpi-v26`) con versiones `mipmap-mdpi`/`hdpi`/`xhdpi`/`xxhdpi`/`xxxhdpi` generadas por `make_icon.ps1`.
+- **Diálogo de ayuda** con instrucciones completas de uso.
+- **Manejo del botón Back** del sistema: cierra menú → cierra teclado → sale.
+
+### Cambiado
+
+- Icono rediseñado (eliminado texto cortado, ahora son las clásicas barras de colores con marco verde).
+- Layout reorganizado: barra de estado arriba con botones LOAD y menú, controles abajo.
+- Botones LOAD y MENU accesibles directamente sin abrir el menú.
+
 ## [1.0.0] - 2026-10-11
 
 ### Añadido

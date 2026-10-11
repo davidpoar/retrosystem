@@ -22,6 +22,9 @@ jobs:
       - name: Install Android workload
         run: dotnet workload install android
 
+      - name: Fetch ZX Spectrum ROM
+        run: pwsh spectrum.android/fetch_rom.ps1
+
       - name: Build Release APK
         run: dotnet build spectrum.android/spectrum.android.csproj -c Release -f net10.0-android
 

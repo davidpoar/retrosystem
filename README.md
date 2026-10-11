@@ -2,13 +2,13 @@
 
 Emulador de **ZX Spectrum 48K** y (próximamente) **MSX1** para escritorio (Windows, Linux, macOS) y **Android**, escrito en **C# / .NET 10** con **MonoGame**.
 
-![Logo](spectrum.android/Resources/Drawable/Icon.png)
+![Icono](spectrum.android/Resources/mipmap-xxxhdpi/ic_launcher.png)
 
 ---
 
-## Estado actual: Spectrum v1
+## Estado actual: Spectrum v1.1
 
-Esta primera versión entrega un emulador **totalmente funcional** del ZX Spectrum 48K con:
+Esta versión entrega un emulador **totalmente funcional** del ZX Spectrum 48K con:
 
 - **CPU Z80** emulada con timing de 3,5 MHz, contención de memoria ULA y raster exacto.
 - **ULA de vídeo**: pantalla 256×192 con atributos (ink / paper / bright / flash), borde dinámico que muestra las clásicas barras de carga horizontales.
@@ -16,8 +16,10 @@ Esta primera versión entrega un emulador **totalmente funcional** del ZX Spectr
 - **Carga de cintas** en formatos `.TAP` y `.TZX` (con Fast Load opcional interceptando la rutina LD-BYTES en `0x0556`).
 - **Teclado completo** mapeado a la matriz de 8×5 teclas del Spectrum.
 - **Controles táctiles** en Android: D-pad (QAOP), botones A/B, y **teclado QWERTY en pantalla** con modificadores SHIFT/SYM.
-
-> **Aviso sobre la ROM**: el emulador **no incluye** la ROM del Spectrum (es código con copyright de Sinclair Research Ltd, 1982). Debes colocar tu propio `48.rom` (16 KB) en `spectrum/` (escritorio) o en `Assets/spectrum/` antes de compilar el APK de Android.
+- **Selector de cintas integrado** (Storage Access Framework) — sin necesidad de ADB.
+- **Menú en pantalla** con accesos rápidos a: Cargar cinta, Teclear LOAD, Fast Load toggle, Reset, Ayuda.
+- **Barra de estado** en tiempo real con el nombre de la cinta y el estado del emulador.
+- **ROM 48K incluida** (c) Sinclair Research Ltd / Amstrad plc, distribuida con permiso.
 
 ---
 
@@ -31,6 +33,8 @@ retrosystem/
 ├── spectrum.core/        # Spectrum emulador (multi-target: net10.0 + net10.0-android)
 ├── spectrum/             # Launcher de escritorio (CLI)
 ├── spectrum.android/     # Aplicación Android con UI táctil
+│   ├── fetch_rom.ps1     # Script que descarga 48.rom desde rustzx
+│   └── Assets/spectrum/  # Aquí se coloca 48.rom (16 KB) antes de compilar
 ├── docs/                 # (próximamente) notas de diseño
 └── releases/             # APKs compilados listos para distribuir
 ```
@@ -41,7 +45,10 @@ retrosystem/
 
 ### 1. Preparar la ROM
 
-Descarga o consigue el archivo **`48.rom`** (16 KB) y cópialo a la carpeta `spectrum/` junto al ejecutable.
+```powershell
+# Si tienes 48.rom de otro origen, cópialo a spectrum/ junto al ejecutable
+Copy-Item path\to\48.rom C:\Dev\retrosystem\spectrum\48.rom
+```
 
 ### 2. Compilar y ejecutar
 
@@ -76,49 +83,57 @@ dotnet run --project spectrum/spectrum.csproj -- -t spectrum\mi_juego.tzx -f
 
 ## Cómo ejecutar (Android)
 
-### 1. Compilar el APK
+### Opción A: instalar el APK precompilado
+
+Visita la página de [Releases](../../releases) y descarga `spectrum-v*.apk`.
 
 ```powershell
+adb install -r spectrum-v1.1.0.apk
+```
+
+El APK ya incluye la ROM 48K, así que arranca directamente con la pantalla `© 1982 Sinclair Research Ltd`. Solo necesitas cargar una cinta.
+
+### Opción B: compilar desde código fuente
+
+```powershell
+# 1) Descargar ROM 48K automáticamente
+pwsh spectrum.android/fetch_rom.ps1
+
+# 2) Compilar APK (debug)
+dotnet build spectrum.android/spectrum.android.csproj
+
+# 3) Compilar APK optimizado (release)
 dotnet build spectrum.android/spectrum.android.csproj -c Release -f net10.0-android
 ```
 
 El APK firmado se genera en:
-
 ```
 spectrum.android/bin/Release/net10.0-android/net.retrosystem.spectrum-Signed.apk
 ```
 
-### 2. Instalar en el dispositivo
+### Cómo cargar un juego en Android
 
-```powershell
-adb install -r spectrum.android/bin/Release/net10.0-android/net.retrosystem.spectrum-Signed.apk
-```
+1. **Pulsa el botón "📂 LOAD"** en la barra superior derecha.
+2. Se abre el selector de archivos del sistema.
+3. Elige cualquier `.tap` o `.tzx` de tu dispositivo.
+4. Activa **Fast Load** desde el menú `☰` (carga instantánea sin esperar audio).
+5. Pulsa **"⌨️ Teclear LOAD" + Enter** en el menú para que el Spectrum ejecute `LOAD ""` automáticamente.
+6. La pantalla mostrará `Loading...` y el juego cargará.
 
-### 3. Empaquetar la ROM y cintas
-
-- **ROM**: coloca `48.rom` en `spectrum.android/Assets/spectrum/` y vuelve a compilar (queda empaquetada dentro del APK).
-- **Cintas (.tap / .tzx)**: cópialas al almacenamiento externo del dispositivo, por ejemplo:
-
-```powershell
-adb push mi_juego.tzx /sdcard/Android/data/net.retrosystem.spectrum/cache/
-```
-
-El emulador busca cintas primero en el bundle de assets, luego en el **caché externo** de la app.
-
-### 4. Controles táctiles
+### Controles táctiles
 
 | Botón en pantalla | Tecla del Spectrum | Uso típico |
 |-------------------|--------------------|------------|
 | **D-pad ▲▼◄►** | Q / A / O / P | Movimiento (joystick QAOP) |
 | **A** (verde) | SPACE | Acción principal (disparar / saltar) |
 | **B** (rojo) | M | Acción secundaria |
-| **KBD** | (muestra/oculta teclado) | Abre el teclado QWERTY en pantalla |
-| **TAPE** | (toggle play/pause) | Control de cinta |
+| **📂 LOAD** (arriba dcha.) | (file picker) | Abre el selector de cintas del sistema |
+| **☰** (arriba dcha.) | (menú) | Menú con Type LOAD, Reset, Fast Load, Help |
+| **KBD** (panel dcho.) | (toggle) | Muestra/oculta el teclado QWERTY |
+| **TAPE** (panel dcho.) | (toggle) | Play/pause de la cinta |
 | **Teclado QWERTY** | Teclas equivalentes | Permite escribir `LOAD ""` y demás comandos BASIC |
 | **SHIFT** en teclado | CAPS SHIFT | Mayúsculas / símbolos |
 | **SYM** en teclado | SYMBOL SHIFT | Símbolo Shift (puntuación) |
-
-El teclado en pantalla replica el layout QWERTY estándar pero cada tecla genera el evento correcto de la matriz del Spectrum. Los modificadores **SHIFT** y **SYM** (Symbol Shift) son botones toggle que se quedan pulsados al pulsarlos.
 
 ---
 
@@ -127,6 +142,8 @@ El teclado en pantalla replica el layout QWERTY estándar pero cada tecla genera
 Visita la página de [Releases](../../releases) y descarga el último `spectrum-v*.apk`.
 
 > Los APKs publicados están firmados con la clave de depuración de .NET (válidos para instalar en cualquier dispositivo con "Orígenes desconocidos" habilitado, **no son aptos para Google Play**).
+>
+> La **ROM 48K ya viene incluida** en el APK, descargada en tiempo de build desde [rustzx/rustzx](https://github.com/rustzx/rustzx) (MIT) que tiene permiso explícito de Amstrad para distribuirla junto con emuladores.
 
 ---
 
@@ -164,6 +181,9 @@ adb shell am start -n net.retrosystem.spectrum/crc6431ebdb18024b6c91.Activity1
 
 # Ver logs de la app
 adb logcat -s Spectrum SpectrumDBG "*:S"
+
+# Re-descargar la ROM (si necesitas resetearla)
+pwsh spectrum.android/fetch_rom.ps1
 ```
 
 ---
@@ -172,7 +192,7 @@ adb logcat -s Spectrum SpectrumDBG "*:S"
 
 - [ ] **MSX1** (v2): portar el emulador MSX existente de z80emu a la misma arquitectura multi-target.
 - [ ] **Audio del beeper en Android** (v2): el actual usa `DynamicSoundEffectInstance` de MonoGame; en Android requiere afinación de buffers.
-- [ ] **Gestor de cintas integrado** (v2): selector visual de `.tap`/`.tzx` desde la app, sin necesidad de ADB.
+- [ ] **Gestor de cintas integrado** (v2): navegador de archivos local para no abrir el picker cada vez.
 - [ ] **Guardar / cargar snapshots** (v2): estado completo (Z80 + ULA + RAM 48K) en `.z80`/`.sna`.
 - [ ] **Joystick físico** (v3): soporte para gamepads Bluetooth en Android (mapeo automático a QAOP).
 - [ ] **128K** (v3): modelo de Spectrum 128K con paginación de memoria y chip AY.
@@ -183,7 +203,9 @@ adb logcat -s Spectrum SpectrumDBG "*:S"
 
 - **Código base**: derivado del proyecto personal `z80emu` del mismo autor. El núcleo Z80, la biblioteca Tape y las abstracciones comunes proceden de dicho proyecto.
 - **MonoGame**: el renderizado y el audio se realizan con [MonoGame](http://monogame.net) (licencia MS-PL). Copyright © 2004–2024 MonoGame Team.
-- **ZX Spectrum**: la arquitectura del hardware emulado es obra de Sinclair Research Ltd (1982). Esta aplicación **no incluye la ROM original** por motivos de copyright; el usuario debe aportar su propia copia para uso personal.
+- **ZX Spectrum 48K**: la arquitectura del hardware emulado es obra de Sinclair Research Ltd (1982).
+- **ROM 48K**: copyright (C) 1982 Sinclair Research Ltd, actualmente propiedad de Amstrad plc. Amstrad ha dado [permiso explícito](https://groups.google.com/forum/?hl=en#!msg/comp.sys.amstrad.8bit/HtpBU2Bzv_U/HhNDSU3MksAJ) para distribuir la ROM junto con emuladores. Se incluye en este proyecto con permiso.
+- **ROM descargada desde**: [rustzx/rustzx](https://github.com/rustzx/rustzx) (MIT license), que mantiene una copia de la ROM con la atribución correcta.
 - **Documentación técnica de la ULA**: basado en el libro de Chris Smith *"The ZX Spectrum ULA: How to Design a Microcomputer"*.
 
 ### Licencia de este proyecto

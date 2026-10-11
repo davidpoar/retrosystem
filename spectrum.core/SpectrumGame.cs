@@ -43,13 +43,16 @@ public class SpectrumGame : Game
     private readonly IAssetProvider assets;
 
     private readonly string? initialTzxPath;
-    private readonly bool fastLoad;
+    private bool fastLoad;
     private readonly string? romName;
 
     public string? LoadedTapeName => loadedTzxPath != null ? System.IO.Path.GetFileNameWithoutExtension(loadedTzxPath) : null;
     public bool IsTapePlaying => tapePlayer != null && tapePlayer.IsPlaying;
     public bool HasTape => tapePlayer != null;
     public string Title => $"ZX Spectrum 48K — {(IsTapePlaying ? "▶" : (HasTape ? "⏸" : "⏹"))} {LoadedTapeName ?? "(sin cinta)"}";
+
+    public bool FastLoadEnabled => fastLoad;
+    public bool IsRomLoaded => isRomLoaded;
 
     private DynamicSoundEffectInstance? soundInstance;
     private bool audioEnabled = false;
@@ -488,6 +491,80 @@ public class SpectrumGame : Game
         tapePlayer.Insert(tape);
         fastLoadBlockIndex = 0;
         Window.Title = Title;
+    }
+
+    public bool LoadTapeFromPath(string path)
+    {
+        try
+        {
+            if (!assets.Exists(path))
+            {
+                logger.Error($"[TAPE] No se encontró la cinta: {path}");
+                return false;
+            }
+            var bytes = assets.ReadAllBytes(path);
+            if (bytes == null) return false;
+            return LoadTapeFromBytes(bytes, path);
+        }
+        catch (Exception ex)
+        {
+            logger.Error($"[TAPE] Error cargando {path}: {ex.Message}");
+            return false;
+        }
+    }
+
+    public bool LoadTapeFromBytes(byte[] tapeBytes, string name)
+    {
+        try
+        {
+            tapeFile = TapeFile.Load(tapeBytes, name);
+            tapePlayer = new TapePlayer(3_500_000);
+            tapePlayer.Insert(tapeFile);
+            loadedTzxPath = name;
+            loadedTapeBytes = tapeBytes;
+            fastLoadBlockIndex = 0;
+
+            string tapeName = System.IO.Path.GetFileNameWithoutExtension(name);
+            logger.Info($"[TAPE] Cargado: {tapeName} — {tapeFile.Blocks.Count} bloques (Fast Load: {(fastLoad ? "ON" : "OFF")})");
+            Window.Title = Title;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.Error($"[TAPE] Error cargando {name}: {ex.Message}");
+            return false;
+        }
+    }
+
+    public void ResetCpu()
+    {
+        if (!isRomLoaded) return;
+        cpu.Reset();
+        currentFrameCycles = 0;
+        ula?.OnFrameStart(cpu.Cycles);
+        if (tapePlayer != null && loadedTapeBytes != null && loadedTzxPath != null)
+        {
+            tapeFile = TapeFile.Load(loadedTapeBytes, loadedTzxPath);
+            tapePlayer.Insert(tapeFile);
+            fastLoadBlockIndex = 0;
+        }
+        ReleaseAllVirtualKeys();
+        typeStringBuffer = null;
+        Window.Title = Title;
+        logger.Info("[RESET] CPU y ULA reiniciados");
+    }
+
+    public void SetFastLoad(bool enabled)
+    {
+        fastLoad = enabled;
+        fastLoadBlockIndex = 0;
+        logger.Info($"[FASTLOAD] {(enabled ? "Activado" : "Desactivado")}");
+    }
+
+    public void TypeLoadCommand()
+    {
+        ReleaseAllVirtualKeys();
+        TypeString("LOAD\"\"\n", frameDelayBetweenChars: 6);
     }
 
     public void TypeString(string s, int frameDelayBetweenChars = 8)

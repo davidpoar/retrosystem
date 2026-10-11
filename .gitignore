@@ -20,6 +20,12 @@ local.properties
 !releases/*.apk
 !releases/*.idsig
 
+# ROMs del ZX Spectrum (copyright Sinclair/Amstrad, descargadas en build time).
+# Para obtenerlas ejecuta spectrum.android/fetch_rom.ps1 antes de compilar.
+spectrum.android/Assets/spectrum/*.rom
+spectrum/*.rom
+*.rom
+
 ## Build artifacts
 TestResults/
 coverage*/
