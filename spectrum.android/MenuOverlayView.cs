@@ -16,6 +16,7 @@ public sealed class MenuOverlayView : FrameLayout
     public enum MenuAction
     {
         LoadTape,
+        SearchOnline,
         TypeLoad,
         ToggleFastLoad,
         ToggleKeyboard,
@@ -92,7 +93,9 @@ public sealed class MenuOverlayView : FrameLayout
         statusLine.SetPadding(0, 0, 0, dp(12));
         container.AddView(statusLine);
 
-        container.AddView(MakeItem("📂  Cargar cinta (.tap/.tzx)...", 0xFF, 0x40, 0xA0, () => ActionRequested?.Invoke(MenuAction.LoadTape)));
+        container.AddView(MakeItem("📂  Cargar cinta local (.tap/.tzx)...", 0xFF, 0x40, 0xA0, () => ActionRequested?.Invoke(MenuAction.LoadTape)));
+        container.AddView(MakeSpacer());
+        container.AddView(MakeItem("🌐  Buscar y descargar online", 0xFF, 0x60, 0x90, () => ActionRequested?.Invoke(MenuAction.SearchOnline)));
         container.AddView(MakeSpacer());
         container.AddView(MakeItem("⌨️  Teclear LOAD\"\" + Enter", 0xFF, 0x40, 0xC0, () => ActionRequested?.Invoke(MenuAction.TypeLoad)));
         container.AddView(MakeSpacer());

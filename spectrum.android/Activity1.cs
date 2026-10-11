@@ -86,7 +86,7 @@ namespace retro.spectrum.android
             _statusTape.SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
             _statusTape.Text = "⏹ (sin cinta)";
 
-            var btnMenuTopBar = new Button(this) { Text = "📂  Librería" };
+            var btnMenuTopBar = new Button(this) { Text = "📂  Local" };
             btnMenuTopBar.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x40, 0xA0, 0x40));
             btnMenuTopBar.SetTextColor(Android.Graphics.Color.White);
             btnMenuTopBar.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
@@ -94,6 +94,15 @@ namespace retro.spectrum.android
             btnMenuTopBar.SetPadding(dp(8), 0, dp(8), 0);
             btnMenuTopBar.SetShadowLayer(2, 1, 1, Android.Graphics.Color.Black);
             btnMenuTopBar.Click += (s, e) => LaunchTapeLibrary();
+
+            var btnOnlineTopBar = new Button(this) { Text = "🌐  Online" };
+            btnOnlineTopBar.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x40, 0x60, 0xA0));
+            btnOnlineTopBar.SetTextColor(Android.Graphics.Color.White);
+            btnOnlineTopBar.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+            btnOnlineTopBar.SetAllCaps(false);
+            btnOnlineTopBar.SetPadding(dp(8), 0, dp(8), 0);
+            btnOnlineTopBar.SetShadowLayer(2, 1, 1, Android.Graphics.Color.Black);
+            btnOnlineTopBar.Click += (s, e) => LaunchOnlineSearch();
 
             var btnMenuButton = new Button(this) { Text = "☰" };
             btnMenuButton.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x40, 0x40, 0x70));
@@ -113,6 +122,8 @@ namespace retro.spectrum.android
                 ViewGroup.LayoutParams.MatchParent, dp(40));
             statusBar.AddView(_statusTape, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MatchParent, 1f));
             statusBar.AddView(btnMenuTopBar, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WrapContent, ViewGroup.LayoutParams.MatchParent));
+            statusBar.AddView(btnOnlineTopBar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WrapContent, ViewGroup.LayoutParams.MatchParent));
             statusBar.AddView(btnMenuButton, new LinearLayout.LayoutParams(
                 dp(44), ViewGroup.LayoutParams.MatchParent));
@@ -166,6 +177,10 @@ namespace retro.spectrum.android
                 case MenuOverlayView.MenuAction.LoadTape:
                     _menu?.Hide();
                     LaunchTapeLibrary();
+                    break;
+                case MenuOverlayView.MenuAction.SearchOnline:
+                    _menu?.Hide();
+                    LaunchOnlineSearch();
                     break;
                 case MenuOverlayView.MenuAction.TypeLoad:
                     _game?.TypeLoadCommand();
@@ -302,6 +317,17 @@ namespace retro.spectrum.android
                 return;
             }
 
+            if (requestCode == OnlineRequestCode && resultCode == Result.Ok && data != null)
+            {
+                string? tapePath = data.GetStringExtra(OnlineSearchActivity.ResultTapePath);
+                string? tapeName = data.GetStringExtra(OnlineSearchActivity.ResultTapeName);
+                if (!string.IsNullOrEmpty(tapePath))
+                {
+                    LoadTapeFromPath(tapePath, tapeName);
+                }
+                return;
+            }
+
             if (requestCode == FilePickerHelper.RequestCodeLoadTape)
             {
                 var (ok, fileName, localPath, error) = FilePickerHelper.HandleResult(this, requestCode, resultCode, data);
@@ -318,11 +344,18 @@ namespace retro.spectrum.android
         }
 
         private const int LibraryRequestCode = 2001;
+        private const int OnlineRequestCode = 2002;
 
         private void LaunchTapeLibrary()
         {
             var intent = new Intent(this, typeof(TapeLibraryActivity));
             StartActivityForResult(intent, LibraryRequestCode);
+        }
+
+        private void LaunchOnlineSearch()
+        {
+            var intent = new Intent(this, typeof(OnlineSearchActivity));
+            StartActivityForResult(intent, OnlineRequestCode);
         }
 
         private void LoadTapeFromPath(string path, string? displayName)

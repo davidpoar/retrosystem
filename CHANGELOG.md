@@ -2,6 +2,29 @@
 
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
+## [1.3.0] - 2026-10-11
+
+### Añadido
+
+- **🌐 Búsqueda online de juegos** en la base de datos ZXInfo (powered by [ZXInfo.dk](https://zxinfo.dk/), API abierta basada en ZXDB).
+- **OnlineSearchActivity** con barra de búsqueda Material, lista de resultados con miniaturas, badges de año/genre/publisher, y botón de descarga.
+- **Descarga automática de .tap/.tzx** desde ZXInfo. Soporta archivos .zip (los descomprime automáticamente).
+- **Nueva `ZxInfoClient` (C#)** que consume el API REST de ZXInfo y deserializa el JSON con `System.Text.Json`.
+- **Indicador de progreso de descarga** en cada fila durante la descarga.
+- **Auto-añadir a recientes** después de una descarga exitosa.
+- **Permisos `INTERNET` y `ACCESS_NETWORK_STATE`** en AndroidManifest.
+- **Botón "🌐 Online"** en la barra superior de la activity principal.
+- **Opción "🌐 Buscar y descargar online"** en el menú principal.
+- **Vector drawables nuevos**: `ic_globe`, `ic_download`, `ic_clear`, `ic_check_circle`, `ic_error`, `illu_search_empty`, `illu_cassette`.
+- **Fondos nuevos**: `bg_search_bar`, `bg_button_accent`.
+- **Layouts nuevos**: `activity_online_search.xml`, `item_search_result.xml`.
+
+### Inspiración de UI
+
+- [RetroArch/libretro](https://github.com/libretro/RetroArch) (GPLv3) — Patrón de menú OSD con búsqueda.
+- [Lemuroid](https://github.com/Swordfish90/Lemuroid) (GPL-3.0) — Patrón de cards y barra de búsqueda superior.
+- [ZXInfo / ZXDB](https://github.com/zxdb/ZXDB) — Base de datos y API abierta.
+
 ## [1.2.1] - 2026-10-11
 
 ### Corregido

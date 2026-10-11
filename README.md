@@ -6,7 +6,7 @@ Emulador de **ZX Spectrum 48K** y (próximamente) **MSX1** para escritorio (Wind
 
 ---
 
-## Estado actual: Spectrum v1.1
+## Estado actual: Spectrum v1.3
 
 Esta versión entrega un emulador **totalmente funcional** del ZX Spectrum 48K con:
 
@@ -16,8 +16,9 @@ Esta versión entrega un emulador **totalmente funcional** del ZX Spectrum 48K c
 - **Carga de cintas** en formatos `.TAP` y `.TZX` (con Fast Load opcional interceptando la rutina LD-BYTES en `0x0556`).
 - **Teclado completo** mapeado a la matriz de 8×5 teclas del Spectrum.
 - **Controles táctiles** en Android: D-pad (QAOP), botones A/B, y **teclado QWERTY en pantalla** con modificadores SHIFT/SYM.
-- **Selector de cintas integrado** (Storage Access Framework) — sin necesidad de ADB.
-- **Menú en pantalla** con accesos rápidos a: Cargar cinta, Teclear LOAD, Fast Load toggle, Reset, Ayuda.
+- **Librería local** con recientes y escaneo automático de `Download/`, `Spectrum/`, `Tapes/`, etc.
+- **🌐 Búsqueda y descarga online** integrada con la base de datos ZXInfo (powered by ZXDB).
+- **Menú en pantalla** con accesos rápidos a: Cargar local, Buscar online, Teclear LOAD, Fast Load toggle, Reset, Ayuda.
 - **Barra de estado** en tiempo real con el nombre de la cinta y el estado del emulador.
 - **ROM 48K incluida** (c) Sinclair Research Ltd / Amstrad plc, distribuida con permiso.
 
@@ -113,12 +114,28 @@ spectrum.android/bin/Release/net10.0-android/net.retrosystem.spectrum-Signed.apk
 
 ### Cómo cargar un juego en Android
 
-1. **Pulsa el botón "📂 LOAD"** en la barra superior derecha.
-2. Se abre el selector de archivos del sistema.
-3. Elige cualquier `.tap` o `.tzx` de tu dispositivo.
-4. Activa **Fast Load** desde el menú `☰` (carga instantánea sin esperar audio).
-5. Pulsa **"⌨️ Teclear LOAD" + Enter** en el menú para que el Spectrum ejecute `LOAD ""` automáticamente.
-6. La pantalla mostrará `Loading...` y el juego cargará.
+Tienes **tres formas** de cargar cintas:
+
+**A) Librería local (📂 Local en la barra superior)**
+1. Pulsa "📂 Local" para abrir la librería.
+2. Verás dos secciones: "Recientes" y "Todas las cintas" (auto-escaneadas de Download, Spectrum, Tapes, etc.).
+3. Toca una cinta para cargarla.
+4. Si no la encuentras, pulsa "📂 Buscar..." para abrir el file picker del sistema.
+
+**B) Online (🌐 Online en la barra superior) — ¡NUEVO!**
+1. Pulsa "🌐 Online" para abrir el buscador.
+2. Escribe el nombre del juego (o autor/publisher) y pulsa Enter / lupa.
+3. Navega por los resultados con miniaturas y metadatos.
+4. Toca el icono 📥 para descargar.
+5. Se descarga, descomprime (si es .zip), guarda en recientes y carga automáticamente.
+
+**C) File picker del sistema**
+- Si ya tienes archivos .tap/.tzx en tu dispositivo, cualquier explorador de archivos o app que abra documentos puede iniciar RetroSystem con ellos vía intent `ACTION_VIEW` con `application/octet-stream` o tipo `*/*`.
+
+**Después de cargar:**
+- Activa **Fast Load** desde el menú `☰` (carga instantánea sin esperar audio).
+- Pulsa **"⌨️ Teclear LOAD" + Enter** en el menú para que el Spectrum ejecute `LOAD ""` automáticamente.
+- La pantalla mostrará `Loading...` y el juego cargará.
 
 ### Controles táctiles
 
@@ -218,8 +235,14 @@ Este proyecto no habría sido posible sin el trabajo de la comunidad open source
 
 ### Interfaces y patrones UI (inspiración)
 - **[Swordfish90/Lemuroid](https://github.com/Swordfish90/Lemuroid)** (GPL-3.0) — Inspiración principal para la pantalla de librería (`TapeLibraryActivity`), el patrón de recientes con SharedPreferences, el escaneo automático de archivos, y la estética general (paleta oscura, cards redondeadas, badges TAP/TZX, sección "Recientes" + "Todas las cintas"). El código ha sido reescrito desde cero en C# / Android Views; el diseño visual está inspirado en este proyecto.
+- **[libretro/RetroArch](https://github.com/libretro/RetroArch)** (GPLv3) — Patrón de búsqueda OSD, ideas de menú, y diseño de cards con miniaturas.
 - **[deanthecoder/ZXSpeculator](https://github.com/deanthecoder/ZXSpeculator)** (MIT) — Patrones de mapeo de teclado, Type LOAD, y la idea de integrar una búsqueda de cintas desde el menú.
 - **[rustzx/rustzx](https://github.com/rustzx/rustzx)** (MIT) — Incluye la ROM con permiso de Amstrad, lo que nos permite empaquetarla en el APK.
+
+### Base de datos y descargas
+- **[ZXInfo / ZXDB](https://github.com/zxdb/ZXDB)** (ODbL) — La base de datos abierta más completa del ZX Spectrum. Alimenta el [API abierto de ZXInfo](https://api.zxinfo.dk/v3/) que usamos para buscar y descargar juegos en la pantalla "🌐 Online".
+- **[ZXInfo](https://zxinfo.dk/)** — Servicio público que indexa la base de datos ZXDB con búsqueda Elasticsearch y descargas directas.
+- **[Einar Saukas](https://github.com/ZXDB/ZXDB/graphs/contributors)** y colaboradores — Por crear y mantener ZXDB.
 
 ### Cómo citar / dar crédito
 Si haces un fork de este proyecto, por favor mantén esta sección de créditos y enlaza a los proyectos OSS de los que deriva.
