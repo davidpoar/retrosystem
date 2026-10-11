@@ -2,6 +2,26 @@
 
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
+## [1.3.1] - 2026-10-11
+
+### Cambiado
+
+- **🔄 Disposición de los controles táctiles rehecha completamente.** Problema reportado: la cruceta y los botones de acción estaban mal distribuidos.
+
+#### Antes (problema)
+- D-pad como 4 botones sueltos en grid 3×3 (no parecía una cruceta real)
+- Botones A y B pequeños y apilados diagonalmente con KBD y TAPE mezclados
+- Botones de sistema (LIBRERÍA, ONLINE, MENU) en la barra de estado, robando espacio
+
+#### Ahora (v1.3.1)
+- **D-pad rediseñado como cruceta real**: View personalizada con `Canvas` que dibuja una cruz con 4 brazos redondeados, hub central, y labels de la tecla Spectrum (Q, A, O, P) en cada brazo. Mayor tamaño (28% del ancho) y respuesta táctil mejorada.
+- **Botones A y B rediseñados**: círculos grandes estilo Nintendo, con la letra (A/B) y la tecla Spectrum que mapean (SPACE/M) claramente visibles. Sombras, rim oscuro, highlight interior. Tamaño 28% del ancho.
+- **Panel de sistema flotante** en la esquina superior derecha: KBD · TAPE · MENU como iconos en un panel oscuro translúcido. No roba espacio a la pantalla del juego.
+- **Carga de cintas desde el menú** (no desde la barra superior): opciones "Cargar local" y "Buscar online" en el menú principal. La barra superior queda slim (36dp, solo el estado).
+- **Distribución de pantalla**: 28% D-pad | 44% juego | 28% A/B. Más espacio para el juego que antes.
+- **Tape toggle visual**: el botón TAPE muestra ▶/❚❚ según el estado de reproducción.
+- **Sliding entre direcciones**: el D-pad detecta gestos de arrastre (ACTION_MOVE) y cambia la dirección pulsada sin necesidad de levantar el dedo.
+
 ## [1.3.0] - 2026-10-11
 
 ### Añadido

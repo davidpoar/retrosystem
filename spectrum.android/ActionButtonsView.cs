@@ -2,202 +2,178 @@ using System;
 using System.Collections.Generic;
 using Android.Content;
 using Android.Graphics;
-using Android.Util;
 using Android.Views;
-using Android.Widget;
 
 namespace retro.spectrum.android;
 
-public sealed class ActionButtonsView : FrameLayout
+public sealed class ActionButtonsView : View
 {
     public delegate void KeyEventHandler(int keyId, bool pressed);
     public event KeyEventHandler? KeyChanged;
     public event Action? KeyboardToggleRequested;
     public event Action? TapeToggleRequested;
 
-    private static readonly Color BgNormalA = Color.Argb(0xEE, 0x40, 0xC0, 0x40);
-    private static readonly Color BgPressedA = Color.Argb(0xFF, 0xA0, 0xFF, 0xA0);
-    private static readonly Color BgNormalB = Color.Argb(0xEE, 0xC0, 0x30, 0x30);
-    private static readonly Color BgPressedB = Color.Argb(0xFF, 0xFF, 0x80, 0x80);
-    private static readonly Color BgSmall   = Color.Argb(0xEE, 0x40, 0x40, 0x80);
-    private static readonly Color BgPressedSmall = Color.Argb(0xFF, 0xA0, 0xA0, 0xFF);
+    private static readonly Color FaceNormal = Color.Argb(0xF0, 0x40, 0xC0, 0x40);
+    private static readonly Color FacePressed = Color.Argb(0xFF, 0x80, 0xFF, 0x80);
+    private static readonly Color FaceNormalB = Color.Argb(0xF0, 0xC0, 0x40, 0x40);
+    private static readonly Color FacePressedB = Color.Argb(0xFF, 0xFF, 0xA0, 0xA0);
+    private static readonly Color RimColor = Color.Argb(0xFF, 0x10, 0x10, 0x10);
+    private static readonly Color TextNormal = Color.Argb(0xFF, 0xFF, 0xFF, 0xFF);
+    private static readonly Color TextPressed = Color.Argb(0xFF, 0x10, 0x10, 0x10);
+    private static readonly Color LabelColor = Color.Argb(0xFF, 0xC0, 0xC0, 0xC0);
+    private static readonly Color HintColor = Color.Argb(0xAA, 0x80, 0x80, 0x80);
+
+    private readonly Paint _paintFace = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintRim = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintText = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintLabel = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintHint = new Paint(PaintFlags.AntiAlias);
 
     private readonly HashSet<int> _pressedKeys = new();
     private readonly Context _ctx;
+    private readonly int _aKey, _bKey;
 
-    private Button _btnA = null!;
-    private Button _btnB = null!;
-    private Button _btnKbd = null!;
-    private Button _btnTape = null!;
+    private float _cx, _cy;
+    private float _btnRadius;
+    private float _rimWidth;
+    private float _labelSize;
+    private float _hintSize;
+    private float _aCx, _aCy, _bCx, _bCy;
+    private string _aLabel, _bLabel;
 
-    public ActionButtonsView(Context context) : base(context)
+    public ActionButtonsView(Context context) : this(context, SpectrumKeyMap.Space, "SPACE", SpectrumKeyMap.M, "M") { }
+
+    public ActionButtonsView(Context context, int aKey, string aLabel, int bKey, string bLabel) : base(context)
     {
         _ctx = context;
-        Initialize();
-    }
-    public ActionButtonsView(Context context, IAttributeSet? attrs) : base(context, attrs)
-    {
-        _ctx = context;
-        Initialize();
-    }
-    public ActionButtonsView(Context context, IAttributeSet? attrs, int defStyleAttr) : base(context, attrs, defStyleAttr)
-    {
-        _ctx = context;
-        Initialize();
-    }
-
-    private void Initialize()
-    {
+        _aKey = aKey;
+        _bLabel = bLabel;
+        _bKey = bKey;
+        _aLabel = aLabel;
         SetBackgroundColor(Color.Transparent);
-        LayoutParameters = new LayoutParams(
-            ViewGroup.LayoutParams.MatchParent,
-            ViewGroup.LayoutParams.MatchParent);
-
-        _btnA    = CreateKeyButton("A", SpectrumKeyMap.Space, BgNormalA, BgPressedA);
-        _btnB    = CreateKeyButton("B", SpectrumKeyMap.M,      BgNormalB, BgPressedB);
-        _btnKbd  = CreateActionButton("KBD", BgSmall, BgPressedSmall, () => KeyboardToggleRequested?.Invoke());
-        _btnTape = CreateActionButton("TAPE", BgSmall, BgPressedSmall, () => TapeToggleRequested?.Invoke());
-
-        AddView(_btnA);
-        AddView(_btnB);
-        AddView(_btnKbd);
-        AddView(_btnTape);
+        _paintText.TextAlign = Paint.Align.Center;
+        _paintText.SetTypeface(Android.Graphics.Typeface.Create("sans-serif", Android.Graphics.TypefaceStyle.Bold));
+        _paintLabel.TextAlign = Paint.Align.Center;
+        _paintHint.TextAlign = Paint.Align.Center;
     }
 
-    private Button CreateKeyButton(string label, int keyId, Color bgNormal, Color bgPressed)
-    {
-        var btn = new Button(Context) { Text = label };
-        btn.SetBackgroundColor(bgNormal);
-        btn.SetTextColor(Color.White);
-        btn.Elevation = 8;
-        btn.SetShadowLayer(6, 3, 3, Color.Black);
-        btn.Tag = keyId;
-
-        btn.Touch += (s, e) =>
-        {
-            var ev = e.Event;
-            if (ev == null) return;
-            switch (ev.ActionMasked)
-            {
-                case MotionEventActions.Down:
-                    btn.SetBackgroundColor(bgPressed);
-                    Haptic.Tap(_ctx);
-                    Press(keyId);
-                    break;
-                case MotionEventActions.Up:
-                case MotionEventActions.Cancel:
-                case MotionEventActions.Outside:
-                    btn.SetBackgroundColor(bgNormal);
-                    Release(keyId);
-                    break;
-            }
-        };
-        return btn;
-    }
-
-    private Button CreateActionButton(string label, Color bgNormal, Color bgPressed, Action onClick)
-    {
-        var btn = new Button(Context) { Text = label };
-        btn.SetBackgroundColor(bgNormal);
-        btn.SetTextColor(Color.White);
-        btn.Elevation = 6;
-        btn.SetShadowLayer(4, 2, 2, Color.Black);
-
-        btn.Touch += (s, e) =>
-        {
-            var ev = e.Event;
-            if (ev == null) return;
-            switch (ev.ActionMasked)
-            {
-                case MotionEventActions.Down:
-                    btn.SetBackgroundColor(bgPressed);
-                    Haptic.Tap(_ctx);
-                    break;
-                case MotionEventActions.Up:
-                    btn.SetBackgroundColor(bgNormal);
-                    if (ev.EventTime - ev.DownTime < 500) onClick();
-                    break;
-                case MotionEventActions.Cancel:
-                case MotionEventActions.Outside:
-                    btn.SetBackgroundColor(bgNormal);
-                    break;
-            }
-        };
-        return btn;
-    }
+    private int Dp(float v) => (int)(v * Resources.DisplayMetrics.Density + 0.5f);
 
     protected override void OnMeasure(int widthMeasureSpec, int heightMeasureSpec)
     {
-        base.OnMeasure(widthMeasureSpec, heightMeasureSpec);
+        int w = MeasureSpec.GetSize(widthMeasureSpec);
+        int h = MeasureSpec.GetSize(heightMeasureSpec);
+        SetMeasuredDimension(w, h);
 
-        int parentW = MeasureSpec.GetSize(widthMeasureSpec);
-        int parentH = MeasureSpec.GetSize(heightMeasureSpec);
-        if (parentW <= 0 || parentH <= 0) return;
+        _cx = w / 2f;
+        _cy = h / 2f;
+        _btnRadius = Math.Min(w, h) * 0.22f;
+        _rimWidth = Dp(3);
+        _labelSize = _btnRadius * 0.20f;
+        _hintSize = Math.Min(w, h) * 0.07f;
 
-        int baseSize = Math.Min(parentW, parentH);
-        int btnSize = (int)(baseSize * 0.18f);
-        int smallSize = (int)(baseSize * 0.10f);
+        _paintText.TextSize = _btnRadius * 0.45f;
+        _paintLabel.TextSize = _labelSize;
+        _paintHint.TextSize = _hintSize;
 
-        int spec = MeasureSpec.MakeMeasureSpec(btnSize, MeasureSpecMode.Exactly);
-        int smallSpec = MeasureSpec.MakeMeasureSpec(smallSize, MeasureSpecMode.Exactly);
-        _btnA.Measure(spec, spec);
-        _btnB.Measure(spec, spec);
-        _btnKbd.Measure(smallSpec, smallSpec);
-        _btnTape.Measure(smallSpec, smallSpec);
-
-        SetMeasuredDimension(parentW, parentH);
+        _aCx = _cx + _btnRadius * 0.45f;
+        _aCy = _cy - _btnRadius * 0.55f;
+        _bCx = _cx - _btnRadius * 0.30f;
+        _bCy = _cy + _btnRadius * 0.55f;
     }
 
-    protected override void OnLayout(bool changed, int left, int top, int right, int bottom)
+    protected override void OnDraw(Canvas canvas)
     {
-        int parentW = right - left;
-        int parentH = bottom - top;
-        if (parentW <= 0 || parentH <= 0) return;
+        base.OnDraw(canvas);
 
-        int baseSize = Math.Min(parentW, parentH);
-        int btnSize = (int)(baseSize * 0.18f);
-        int smallSize = (int)(baseSize * 0.10f);
-        int gap = btnSize / 2;
+        DrawButton(canvas, _aCx, _aCy, _aKey, FaceNormal, FacePressed, "A", _aLabel, true);
+        DrawButton(canvas, _bCx, _bCy, _bKey, FaceNormalB, FacePressedB, "B", _bLabel, false);
 
-        int aLeft = parentW - btnSize - smallSize;
-        int aTop = (parentH / 2) - btnSize - gap / 2;
+        _paintHint.Color = HintColor;
+        canvas.DrawText("FIRE", _cx, h() - Dp(8), _paintHint);
+    }
 
-        int bLeft = aLeft - btnSize - gap;
-        int bTop = (parentH / 2) + gap / 2;
+    private float h() => Height;
 
-        _btnA.Layout(aLeft, aTop, aLeft + btnSize, aTop + btnSize);
-        _btnB.Layout(bLeft, bTop, bLeft + btnSize, bTop + btnSize);
+    private void DrawButton(Canvas canvas, float cx, float cy, int keyId,
+        Color faceNormal, Color facePressed, string letter, string label, bool isTop)
+    {
+        bool pressed = _pressedKeys.Contains(keyId);
 
-        _btnA.TextSize = btnSize * 0.40f;
-        _btnB.TextSize = btnSize * 0.40f;
+        _paintRim.Color = RimColor;
+        _paintRim.SetShadowLayer(Dp(8), 0, Dp(3), Color.Argb(0xAA, 0, 0, 0));
+        canvas.DrawCircle(cx, cy, _btnRadius + _rimWidth, _paintRim);
 
-        int kbdLeft = parentW - smallSize - smallSize / 4;
-        int kbdTop = parentH - smallSize - smallSize / 4;
-        _btnKbd.Layout(kbdLeft, kbdTop, kbdLeft + smallSize, kbdTop + smallSize);
-        _btnKbd.TextSize = smallSize * 0.22f;
+        _paintFace.Color = pressed ? facePressed : faceNormal;
+        _paintFace.SetShadowLayer(0, 0, 0, 0);
+        canvas.DrawCircle(cx, cy, _btnRadius, _paintFace);
 
-        int tapeLeft = kbdLeft - smallSize - smallSize / 4;
-        int tapeTop = kbdTop;
-        _btnTape.Layout(tapeLeft, tapeTop, tapeLeft + smallSize, tapeTop + smallSize);
-        _btnTape.TextSize = smallSize * 0.22f;
+        _paintRim.Color = Color.Argb(0x60, 0xFF, 0xFF, 0xFF);
+        _paintRim.SetShadowLayer(0, 0, 0, 0);
+        canvas.DrawCircle(cx, cy - _btnRadius * 0.12f, _btnRadius * 0.85f, _paintRim);
+
+        _paintText.Color = pressed ? TextPressed : TextNormal;
+        canvas.DrawText(letter, cx, cy + _btnRadius * 0.18f, _paintText);
+
+        _paintLabel.Color = LabelColor;
+        canvas.DrawText(label, cx, cy + _btnRadius * 0.65f, _paintLabel);
+    }
+
+    public override bool OnTouchEvent(MotionEvent e)
+    {
+        var action = e.ActionMasked;
+        if (action == MotionEventActions.Down || action == MotionEventActions.Move)
+        {
+            int? hit = HitTest(e.GetX(), e.GetY());
+            if (action == MotionEventActions.Move)
+            {
+                foreach (var k in new List<int>(_pressedKeys))
+                {
+                    if (!hit.HasValue || hit.Value != k) Release(k);
+                }
+            }
+            if (hit.HasValue && !_pressedKeys.Contains(hit.Value))
+            {
+                Press(hit.Value);
+                Haptic.Tap(_ctx);
+            }
+            return true;
+        }
+        else if (action == MotionEventActions.Up || action == MotionEventActions.Cancel)
+        {
+            foreach (var k in new List<int>(_pressedKeys)) Release(k);
+            return true;
+        }
+        return base.OnTouchEvent(e);
+    }
+
+    private int? HitTest(float x, float y)
+    {
+        if (InCircle(x, y, _aCx, _aCy, _btnRadius)) return _aKey;
+        if (InCircle(x, y, _bCx, _bCy, _btnRadius)) return _bKey;
+        return null;
+    }
+
+    private static bool InCircle(float x, float y, float cx, float cy, float r)
+    {
+        float dx = x - cx, dy = y - cy;
+        return dx * dx + dy * dy <= r * r;
     }
 
     private void Press(int keyId)
     {
-        if (_pressedKeys.Add(keyId)) KeyChanged?.Invoke(keyId, true);
+        if (_pressedKeys.Add(keyId)) { Invalidate(); KeyChanged?.Invoke(keyId, true); }
     }
 
     private void Release(int keyId)
     {
-        if (_pressedKeys.Remove(keyId)) KeyChanged?.Invoke(keyId, false);
+        if (_pressedKeys.Remove(keyId)) { Invalidate(); KeyChanged?.Invoke(keyId, false); }
     }
 
     public void ReleaseAll()
     {
         foreach (var id in _pressedKeys) KeyChanged?.Invoke(id, false);
         _pressedKeys.Clear();
-
-        _btnA?.SetBackgroundColor(BgNormalA);
-        _btnB?.SetBackgroundColor(BgNormalB);
+        Invalidate();
     }
 }

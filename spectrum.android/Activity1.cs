@@ -23,6 +23,7 @@ namespace retro.spectrum.android
         private SpectrumGame? _game;
         private DpadView? _dpad;
         private ActionButtonsView? _buttons;
+        private SystemPanelView? _systemPanel;
         private SpectrumKeyboardView? _keyboard;
         private MenuOverlayView? _menu;
         private View? _gameView;
@@ -60,8 +61,11 @@ namespace retro.spectrum.android
 
             _buttons = new ActionButtonsView(this);
             _buttons.KeyChanged += OnKeyChanged;
-            _buttons.KeyboardToggleRequested += ToggleKeyboard;
-            _buttons.TapeToggleRequested += () => _game?.ToggleTape();
+
+            _systemPanel = new SystemPanelView(this);
+            _systemPanel.KeyboardToggleRequested += ToggleKeyboard;
+            _systemPanel.TapeToggleRequested += () => _game?.ToggleTape();
+            _systemPanel.MenuRequested += () => _menu?.Show();
 
             _keyboard = new SpectrumKeyboardView(this);
             _keyboard.KeyChanged += OnKeyChanged;
@@ -86,47 +90,12 @@ namespace retro.spectrum.android
             _statusTape.SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
             _statusTape.Text = "⏹ (sin cinta)";
 
-            var btnMenuTopBar = new Button(this) { Text = "📂  Local" };
-            btnMenuTopBar.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x40, 0xA0, 0x40));
-            btnMenuTopBar.SetTextColor(Android.Graphics.Color.White);
-            btnMenuTopBar.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-            btnMenuTopBar.SetAllCaps(false);
-            btnMenuTopBar.SetPadding(dp(8), 0, dp(8), 0);
-            btnMenuTopBar.SetShadowLayer(2, 1, 1, Android.Graphics.Color.Black);
-            btnMenuTopBar.Click += (s, e) => LaunchTapeLibrary();
-
-            var btnOnlineTopBar = new Button(this) { Text = "🌐  Online" };
-            btnOnlineTopBar.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x40, 0x60, 0xA0));
-            btnOnlineTopBar.SetTextColor(Android.Graphics.Color.White);
-            btnOnlineTopBar.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-            btnOnlineTopBar.SetAllCaps(false);
-            btnOnlineTopBar.SetPadding(dp(8), 0, dp(8), 0);
-            btnOnlineTopBar.SetShadowLayer(2, 1, 1, Android.Graphics.Color.Black);
-            btnOnlineTopBar.Click += (s, e) => LaunchOnlineSearch();
-
-            var btnMenuButton = new Button(this) { Text = "☰" };
-            btnMenuButton.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x40, 0x40, 0x70));
-            btnMenuButton.SetTextColor(Android.Graphics.Color.White);
-            btnMenuButton.SetTextSize(Android.Util.ComplexUnitType.Sp, 18);
-            btnMenuButton.SetAllCaps(false);
-            btnMenuButton.SetShadowLayer(2, 1, 1, Android.Graphics.Color.Black);
-            btnMenuButton.Click += (s, e) => _menu?.Show();
-
-            var statusBar = new LinearLayout(this)
-            {
-                Orientation = Orientation.Horizontal
-            };
+            var statusBar = new LinearLayout(this) { Orientation = Orientation.Horizontal };
             statusBar.SetGravity(GravityFlags.CenterVertical);
             statusBar.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x05, 0x05, 0x15));
             statusBar.LayoutParameters = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MatchParent, dp(40));
+                ViewGroup.LayoutParams.MatchParent, dp(36));
             statusBar.AddView(_statusTape, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MatchParent, 1f));
-            statusBar.AddView(btnMenuTopBar, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WrapContent, ViewGroup.LayoutParams.MatchParent));
-            statusBar.AddView(btnOnlineTopBar, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WrapContent, ViewGroup.LayoutParams.MatchParent));
-            statusBar.AddView(btnMenuButton, new LinearLayout.LayoutParams(
-                dp(44), ViewGroup.LayoutParams.MatchParent));
 
             _gameContainer = new FrameLayout(this);
             if (_gameView != null)
@@ -138,13 +107,19 @@ namespace retro.spectrum.android
             }
 
             _topRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
-            _dpad.LayoutParameters = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MatchParent, 0.22f);
-            _buttons.LayoutParameters = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MatchParent, 0.22f);
-            _gameContainer.LayoutParameters = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MatchParent, 0.56f);
+            _dpad.LayoutParameters = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MatchParent, 0.28f);
+            _buttons.LayoutParameters = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MatchParent, 0.28f);
+            _gameContainer.LayoutParameters = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MatchParent, 0.44f);
 
             _topRow.AddView(_dpad);
             _topRow.AddView(_gameContainer);
             _topRow.AddView(_buttons);
+
+            var sysPanelLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WrapContent,
+                ViewGroup.LayoutParams.WrapContent,
+                GravityFlags.Top | GravityFlags.End);
+            sysPanelLp.SetMargins(dp(8), dp(44), dp(8), 0);
 
             var root = new LinearLayout(this) { Orientation = Orientation.Vertical };
             _root = root;
@@ -158,6 +133,7 @@ namespace retro.spectrum.android
             var frameRoot = new FrameLayout(this);
             frameRoot.AddView(root, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent));
+            frameRoot.AddView(_systemPanel, sysPanelLp);
             frameRoot.AddView(_menu, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent));
 

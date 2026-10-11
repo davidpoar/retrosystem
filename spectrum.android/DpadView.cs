@@ -1,157 +1,249 @@
+using System;
 using System.Collections.Generic;
 using Android.Content;
 using Android.Graphics;
 using Android.Util;
 using Android.Views;
-using Android.Widget;
 
 namespace retro.spectrum.android;
 
-public sealed class DpadView : FrameLayout
+public sealed class DpadView : View
 {
     public delegate void KeyEventHandler(int keyId, bool pressed);
     public event KeyEventHandler? KeyChanged;
 
-    private static readonly Color BgNormal = Color.Argb(0xEE, 0x25, 0x25, 0x55);
-    private static readonly Color BgPressed = Color.Argb(0xFF, 0x60, 0xE0, 0x70);
-    private static readonly Color BgCenter = Color.Argb(0x88, 0x18, 0x18, 0x30);
+    private static readonly Color PadColor = Color.Argb(0xEE, 0x1F, 0x24, 0x36);
+    private static readonly Color PadHighlight = Color.Argb(0xEE, 0x33, 0x3B, 0x55);
+    private static readonly Color Pressed = Color.Argb(0xFF, 0x60, 0xE0, 0x70);
+    private static readonly Color IconColor = Color.Argb(0xFF, 0xC8, 0xD0, 0xE0);
+    private static readonly Color LabelColor = Color.Argb(0xFF, 0x90, 0xC0, 0xFF);
+    private static readonly Color HubColor = Color.Argb(0xFF, 0x14, 0x18, 0x28);
+
+    private readonly Paint _paintPad = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintPressed = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintIcon = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintLabel = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintHub = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintHint = new Paint(PaintFlags.AntiAlias);
 
     private readonly HashSet<int> _pressedKeys = new();
     private readonly Context _ctx;
-    private RelativeLayout _cross = null!;
-    private Button _btnUp = null!, _btnDown = null!, _btnLeft = null!, _btnRight = null!;
+    private readonly int _upKey, _downKey, _leftKey, _rightKey;
+    private float _cx, _cy, _arm, _thick, _corner;
+    private float _labelTextSize;
+    private float _hintTextSize;
+    private string _hintLabel = "";
 
-    public DpadView(Context context) : base(context) { _ctx = context; Initialize(); }
-    public DpadView(Context context, IAttributeSet? attrs) : base(context, attrs) { _ctx = context; Initialize(); }
-    public DpadView(Context context, IAttributeSet? attrs, int defStyleAttr) : base(context, attrs, defStyleAttr) { _ctx = context; Initialize(); }
-
-    private void Initialize()
+    public DpadView(Context context) : this(context, SpectrumKeyMap.Q, SpectrumKeyMap.A, SpectrumKeyMap.O, SpectrumKeyMap.P) { }
+    public DpadView(Context context, int upKey, int downKey, int leftKey, int rightKey, string hint = "QAOP") : base(context)
     {
+        _ctx = context;
+        _upKey = upKey;
+        _downKey = downKey;
+        _leftKey = leftKey;
+        _rightKey = rightKey;
+        _hintLabel = hint;
         SetBackgroundColor(Color.Transparent);
-        LayoutParameters = new LayoutParams(
-            ViewGroup.LayoutParams.MatchParent,
-            ViewGroup.LayoutParams.MatchParent);
-
-        _cross = new RelativeLayout(Context);
-        _cross.LayoutParameters = new LayoutParams(
-            ViewGroup.LayoutParams.WrapContent,
-            ViewGroup.LayoutParams.WrapContent)
-        {
-            Gravity = GravityFlags.Left | GravityFlags.CenterVertical
-        };
-        AddView(_cross);
-
-        _btnUp    = CreateButton("▲", SpectrumKeyMap.Q);
-        _btnDown  = CreateButton("▼", SpectrumKeyMap.A);
-        _btnLeft  = CreateButton("◄", SpectrumKeyMap.O);
-        _btnRight = CreateButton("►", SpectrumKeyMap.P);
-
-        _cross.AddView(_btnUp);
-        _cross.AddView(_btnDown);
-        _cross.AddView(_btnLeft);
-        _cross.AddView(_btnRight);
     }
 
-    private Button CreateButton(string label, int keyId)
-    {
-        var btn = new Button(Context) { Text = label };
-        btn.SetBackgroundColor(BgNormal);
-        btn.SetTextColor(Color.White);
-        btn.Elevation = 8;
-        btn.SetShadowLayer(4, 2, 2, Color.Black);
-        btn.Tag = keyId;
+    private int Dp(float v) => (int)(v * Resources.DisplayMetrics.Density + 0.5f);
 
-        btn.Touch += (s, e) =>
-        {
-            var ev = e.Event;
-            if (ev == null) return;
-            switch (ev.ActionMasked)
-            {
-                case MotionEventActions.Down:
-                    btn.SetBackgroundColor(BgPressed);
-                    Haptic.Tap(_ctx);
-                    Press(keyId);
-                    break;
-                case MotionEventActions.Up:
-                case MotionEventActions.Cancel:
-                case MotionEventActions.Outside:
-                    btn.SetBackgroundColor(BgNormal);
-                    Release(keyId);
-                    break;
-            }
-        };
-        return btn;
-    }
+    private RectF? _upRect, _downRect, _leftRect, _rightRect;
 
     protected override void OnMeasure(int widthMeasureSpec, int heightMeasureSpec)
     {
-        base.OnMeasure(widthMeasureSpec, heightMeasureSpec);
+        int w = MeasureSpec.GetSize(widthMeasureSpec);
+        int h = MeasureSpec.GetSize(heightMeasureSpec);
+        int side = Math.Min(w, h);
+        SetMeasuredDimension(w, h);
 
-        int parentW = MeasureSpec.GetSize(widthMeasureSpec);
-        int parentH = MeasureSpec.GetSize(heightMeasureSpec);
-        if (parentW <= 0 || parentH <= 0) return;
+        _cx = w / 2f;
+        _cy = h / 2f;
+        _arm = side * 0.42f;
+        _thick = _arm * 0.62f;
+        _corner = _thick * 0.18f;
+        _labelTextSize = _arm * 0.20f;
+        _hintTextSize = side * 0.07f;
 
-        int side = (int)(parentW * 0.85f);
-        int btnSize = side / 3;
-        int gap = btnSize / 4;
+        _paintLabel.TextSize = _labelTextSize;
+        _paintLabel.TextAlign = Paint.Align.Center;
+        _paintLabel.SetTypeface(Android.Graphics.Typeface.Create("sans-serif", Android.Graphics.TypefaceStyle.Bold));
+        _paintLabel.Color = LabelColor;
 
-        int crossW = btnSize * 3 + gap * 2;
-        int crossH = btnSize * 3 + gap * 2;
+        _paintIcon.TextSize = _arm * 0.32f;
+        _paintIcon.TextAlign = Paint.Align.Center;
+        _paintIcon.Color = IconColor;
 
-        _cross.Measure(
-            MeasureSpec.MakeMeasureSpec(crossW, MeasureSpecMode.Exactly),
-            MeasureSpec.MakeMeasureSpec(crossH, MeasureSpecMode.Exactly));
+        _paintHub.Color = HubColor;
+        _paintHub.SetShadowLayer(Dp(3), 0, Dp(2), Color.Argb(0x80, 0, 0, 0));
 
-        SetMeasuredDimension(parentW, parentH);
+        _paintHint.TextSize = _hintTextSize;
+        _paintHint.TextAlign = Paint.Align.Center;
+        _paintHint.Color = Color.Argb(0xAA, 0x80, 0x80, 0x80);
+
+        _upRect = new RectF(_cx - _thick / 2, _cy - _arm, _cx + _thick / 2, _cy);
+        _downRect = new RectF(_cx - _thick / 2, _cy, _cx + _thick / 2, _cy + _arm);
+        _leftRect = new RectF(_cx - _arm, _cy - _thick / 2, _cx, _cy + _thick / 2);
+        _rightRect = new RectF(_cx, _cy - _thick / 2, _cx + _arm, _cy + _thick / 2);
     }
 
-    protected override void OnLayout(bool changed, int left, int top, int right, int bottom)
+    protected override void OnDraw(Canvas canvas)
     {
-        int parentW = right - left;
-        int parentH = bottom - top;
-        if (parentW <= 0 || parentH <= 0) return;
+        base.OnDraw(canvas);
 
-        int side = (int)(parentW * 0.85f);
-        int btnSize = side / 3;
-        int gap = btnSize / 4;
+        _paintPad.Color = PadColor;
+        _paintPad.SetShadowLayer(Dp(6), 0, Dp(2), Color.Argb(0x80, 0, 0, 0));
 
-        int crossW = btnSize * 3 + gap * 2;
-        int crossH = btnSize * 3 + gap * 2;
+        DrawArm(canvas, _upRect!, _upKey);
+        DrawArm(canvas, _downRect!, _downKey);
+        DrawArm(canvas, _leftRect!, _leftKey);
+        DrawArm(canvas, _rightRect!, _rightKey);
 
-        int crossLeft = (parentW - crossW) / 2;
-        int crossTop = (parentH - crossH) / 2;
+        canvas.DrawCircle(_cx, _cy, _thick * 0.42f, _paintHub);
 
-        _cross.Layout(crossLeft, crossTop, crossLeft + crossW, crossTop + crossH);
-
-        LayoutButton(_btnUp, btnSize, btnSize + gap, 0);
-        LayoutButton(_btnDown, btnSize, btnSize + gap, (btnSize + gap) * 2);
-        LayoutButton(_btnLeft, btnSize, 0, btnSize + gap);
-        LayoutButton(_btnRight, btnSize, (btnSize + gap) * 2, btnSize + gap);
+        _paintLabel.Color = Color.Argb(0x66, 0x60, 0xE0, 0x70);
+        canvas.DrawText(_hintLabel, _cx, h() - Dp(8), _paintHint);
     }
 
-    private static void LayoutButton(Button btn, int size, int l, int t)
+    private float h() => Height;
+
+    private void DrawArm(Canvas canvas, RectF r, int keyId)
     {
-        btn.Layout(l, t, l + size, t + size);
-        btn.TextSize = size * 0.35f;
+        bool pressed = _pressedKeys.Contains(keyId);
+        _paintPad.Color = pressed ? Pressed : PadColor;
+        _paintPressed.Color = Pressed;
+
+        float notch = _thick * 0.10f;
+        Path path = BuildCrossPath(_cx, _cy, _arm, _thick, _corner, notch);
+        canvas.DrawPath(path, _paintPad);
+        if (pressed) canvas.DrawPath(path, _paintPressed);
+
+        string label = KeyLabel(keyId);
+        string icon = IconForKey(keyId);
+        float labelOffset = _arm * 0.62f;
+
+        float cx = r.CenterX();
+        float cy = r.CenterY();
+        if (keyId == _upKey) cy += _labelTextSize * 0.3f;
+        if (keyId == _downKey) cy -= _labelTextSize * 0.3f;
+        if (keyId == _leftKey) cx -= _arm * 0.55f;
+        if (keyId == _rightKey) cx += _arm * 0.55f;
+
+        _paintIcon.Color = pressed ? Color.Argb(0xFF, 0x1A, 0x1A, 0x1A) : IconColor;
+        canvas.DrawText(icon, cx, cy - _labelTextSize * 0.05f, _paintIcon);
+
+        _paintLabel.Color = pressed ? Color.Argb(0xFF, 0x1A, 0x1A, 0x1A) : LabelColor;
+        canvas.DrawText(label, cx, cy + _labelTextSize * 0.95f, _paintLabel);
+    }
+
+    private static Path BuildCrossPath(float cx, float cy, float arm, float thick, float corner, float notch)
+    {
+        float halfT = thick / 2f;
+        float inner = halfT - notch;
+        Path p = new Path();
+        p.MoveTo(cx - halfT + corner, cy - arm);
+        p.LineTo(cx + halfT - corner, cy - arm);
+        p.QuadTo(cx + halfT, cy - arm, cx + halfT, cy - arm + corner);
+        p.LineTo(cx + halfT, cy - inner);
+        p.LineTo(cx + arm - corner, cy - inner);
+        p.QuadTo(cx + arm, cy - inner, cx + arm, cy - inner + corner);
+        p.LineTo(cx + arm, cy + inner - corner);
+        p.QuadTo(cx + arm, cy + inner, cx + arm - corner, cy + inner);
+        p.LineTo(cx + halfT, cy + inner);
+        p.LineTo(cx + halfT, cy + arm - corner);
+        p.QuadTo(cx + halfT, cy + arm, cx + halfT - corner, cy + arm);
+        p.LineTo(cx - halfT + corner, cy + arm);
+        p.QuadTo(cx - halfT, cy + arm, cx - halfT, cy + arm - corner);
+        p.LineTo(cx - halfT, cy + inner);
+        p.LineTo(cx - arm + corner, cy + inner);
+        p.QuadTo(cx - arm, cy + inner, cx - arm, cy + inner - corner);
+        p.LineTo(cx - arm, cy - inner + corner);
+        p.QuadTo(cx - arm, cy - inner, cx - arm + corner, cy - inner);
+        p.LineTo(cx - halfT, cy - inner);
+        p.LineTo(cx - halfT, cy - arm + corner);
+        p.QuadTo(cx - halfT, cy - arm, cx - halfT + corner, cy - arm);
+        p.Close();
+        return p;
+    }
+
+    private static string KeyLabel(int keyId)
+    {
+        if (keyId == SpectrumKeyMap.Q) return "Q";
+        if (keyId == SpectrumKeyMap.A) return "A";
+        if (keyId == SpectrumKeyMap.O) return "O";
+        if (keyId == SpectrumKeyMap.P) return "P";
+        return "";
+    }
+
+    private static string IconForKey(int keyId)
+    {
+        if (keyId == SpectrumKeyMap.Q) return "▲";
+        if (keyId == SpectrumKeyMap.A) return "▼";
+        if (keyId == SpectrumKeyMap.O) return "◀";
+        if (keyId == SpectrumKeyMap.P) return "▶";
+        return "";
+    }
+
+    public override bool OnTouchEvent(MotionEvent e)
+    {
+        if (_upRect == null) return false;
+        var action = e.ActionMasked;
+        if (action == MotionEventActions.Down)
+        {
+            int? hit = HitTest(e.GetX(), e.GetY());
+            if (hit.HasValue)
+            {
+                Press(hit.Value);
+                Haptic.Tap(_ctx);
+                return true;
+            }
+        }
+        else if (action == MotionEventActions.Move)
+        {
+            int? hit = HitTest(e.GetX(), e.GetY());
+            var current = new HashSet<int>(_pressedKeys);
+            foreach (var k in current)
+            {
+                if (!hit.HasValue || hit.Value != k) Release(k);
+            }
+            if (hit.HasValue && !_pressedKeys.Contains(hit.Value))
+            {
+                Press(hit.Value);
+                Haptic.Tap(_ctx);
+            }
+            return true;
+        }
+        else if (action == MotionEventActions.Up || action == MotionEventActions.Cancel)
+        {
+            foreach (var k in new List<int>(_pressedKeys)) Release(k);
+            return true;
+        }
+        return base.OnTouchEvent(e);
+    }
+
+    private int? HitTest(float x, float y)
+    {
+        if (_upRect!.Contains(x, y)) return _upKey;
+        if (_downRect!.Contains(x, y)) return _downKey;
+        if (_leftRect!.Contains(x, y)) return _leftKey;
+        if (_rightRect!.Contains(x, y)) return _rightKey;
+        return null;
     }
 
     private void Press(int keyId)
     {
-        if (_pressedKeys.Add(keyId)) KeyChanged?.Invoke(keyId, true);
+        if (_pressedKeys.Add(keyId)) { Invalidate(); KeyChanged?.Invoke(keyId, true); }
     }
 
     private void Release(int keyId)
     {
-        if (_pressedKeys.Remove(keyId)) KeyChanged?.Invoke(keyId, false);
+        if (_pressedKeys.Remove(keyId)) { Invalidate(); KeyChanged?.Invoke(keyId, false); }
     }
 
     public void ReleaseAll()
     {
         foreach (var id in _pressedKeys) KeyChanged?.Invoke(id, false);
         _pressedKeys.Clear();
-        if (_btnUp != null) _btnUp.SetBackgroundColor(BgNormal);
-        if (_btnDown != null) _btnDown.SetBackgroundColor(BgNormal);
-        if (_btnLeft != null) _btnLeft.SetBackgroundColor(BgNormal);
-        if (_btnRight != null) _btnRight.SetBackgroundColor(BgNormal);
+        Invalidate();
     }
 }
