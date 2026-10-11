@@ -612,18 +612,14 @@ public class SpectrumGame : Game
         ReleaseAllVirtualKeys();
         typeStringBuffer = null;
         typeStringCharIndex = 0;
-        typeStringFrameDelay = 8;
-        typeStringBuffer = LOAD_COMMAND_SEQUENCE;
-        typeStringCharIndex = 0;
+        typeStringFrameDelay = 10;
+        typeActionBuffer = new[] { 1, 2, 2, 3 };
+        typeActionIndex = 0;
         typeStringFrameCounter = -100;
-        logger.Info($"[TYPE] TypeLoadCommand: buffer='{LOAD_COMMAND_SEQUENCE}' len={LOAD_COMMAND_SEQUENCE.Length}");
-        for (int i = 0; i < LOAD_COMMAND_SEQUENCE.Length; i++)
-        {
-            logger.Info($"[TYPE]   [{i}] U+{(int)LOAD_COMMAND_SEQUENCE[i]:X4}");
-        }
+        logger.Info("[TYPE] TypeLoadCommand iniciado: 4 acciones (LOAD, \", \", Enter)");
     }
 
-    private const string LOAD_COMMAND_SEQUENCE = "\u0010\u0011\u0011\n";
+    private const string LOAD_COMMAND_SEQUENCE = "";
 
     public bool LoadTapeAndAutoType(string path)
     {
@@ -646,6 +642,8 @@ public class SpectrumGame : Game
     private int typeStringFrameCounter = 0;
     private int typeStringCharIndex = 0;
     private int typeStringFrameDelay = 8;
+    private int[]? typeActionBuffer = null;
+    private int typeActionIndex = 0;
 
     private void ApplyVirtualKeys()
     {
@@ -655,6 +653,11 @@ public class SpectrumGame : Game
 
     private void ProcessTypeBuffer()
     {
+        if (typeActionBuffer != null)
+        {
+            ProcessActionBuffer();
+            return;
+        }
         if (typeStringBuffer == null) return;
         typeStringFrameCounter++;
         if (typeStringFrameCounter < typeStringFrameDelay) return;
@@ -670,6 +673,41 @@ public class SpectrumGame : Game
         logger.Info($"[TYPE] Char {typeStringCharIndex - 1}/{typeStringBuffer.Length}: U+{(int)c:X4}");
         ReleaseAllVirtualKeys();
         TypeChar(c);
+    }
+
+    private void ProcessActionBuffer()
+    {
+        typeStringFrameCounter++;
+        if (typeStringFrameCounter < typeStringFrameDelay) return;
+        typeStringFrameCounter = 0;
+        if (typeActionBuffer == null || typeActionIndex >= typeActionBuffer.Length)
+        {
+            logger.Info($"[TYPE] Action buffer terminado, {typeActionIndex} acciones");
+            typeActionBuffer = null;
+            typeActionIndex = 0;
+            return;
+        }
+
+        ReleaseAllVirtualKeys();
+
+        int action = typeActionBuffer[typeActionIndex++];
+        switch (action)
+        {
+            case 1:
+                PressVirtualKeyById(SpectrumKeyMap.CapsShift);
+                PressVirtualKeyById(SpectrumKeyMap.J);
+                logger.Info("[TYPE] Action: CapsShift+J (LOAD)");
+                break;
+            case 2:
+                PressVirtualKeyById(SpectrumKeyMap.SymbolShift);
+                PressVirtualKeyById(SpectrumKeyMap.Key2);
+                logger.Info("[TYPE] Action: SymbolShift+2 (\")");
+                break;
+            case 3:
+                PressVirtualKeyById(SpectrumKeyMap.Enter);
+                logger.Info("[TYPE] Action: Enter");
+                break;
+        }
     }
 
     private void TypeChar(char c)

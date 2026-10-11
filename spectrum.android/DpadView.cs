@@ -14,7 +14,8 @@ public sealed class DpadView : View
 
     private static readonly Color PadColor = Color.Argb(0xEE, 0x1F, 0x24, 0x36);
     private static readonly Color PadHighlight = Color.Argb(0xEE, 0x33, 0x3B, 0x55);
-    private static readonly Color Pressed = Color.Argb(0xFF, 0x60, 0xE0, 0x70);
+    private static readonly Color Pressed = Color.Argb(0xFF, 0x2A, 0x30, 0x48);
+    private static readonly Color PressedBorder = Color.Argb(0xFF, 0xA0, 0xC0, 0xE0);
     private static readonly Color IconColor = Color.Argb(0xFF, 0xC8, 0xD0, 0xE0);
     private static readonly Color LabelColor = Color.Argb(0xFF, 0x90, 0xC0, 0xFF);
     private static readonly Color HubColor = Color.Argb(0xFF, 0x14, 0x18, 0x28);
@@ -25,6 +26,7 @@ public sealed class DpadView : View
     private readonly Paint _paintLabel = new Paint(PaintFlags.AntiAlias);
     private readonly Paint _paintHub = new Paint(PaintFlags.AntiAlias);
     private readonly Paint _paintHint = new Paint(PaintFlags.AntiAlias);
+    private readonly Paint _paintRim = new Paint(PaintFlags.AntiAlias);
 
     private readonly HashSet<int> _pressedKeys = new();
     private readonly Context _ctx;
@@ -111,16 +113,24 @@ public sealed class DpadView : View
     {
         bool pressed = _pressedKeys.Contains(keyId);
         _paintPad.Color = pressed ? Pressed : PadColor;
-        _paintPressed.Color = Pressed;
+        _paintPad.SetShadowLayer(pressed ? Dp(2) : Dp(6), 0, pressed ? Dp(1) : Dp(2), Color.Argb(0x80, 0, 0, 0));
 
         float notch = _thick * 0.10f;
         Path path = BuildCrossPath(_cx, _cy, _arm, _thick, _corner, notch);
         canvas.DrawPath(path, _paintPad);
-        if (pressed) canvas.DrawPath(path, _paintPressed);
+
+        if (pressed)
+        {
+            _paintRim.Color = PressedBorder;
+            _paintRim.SetShadowLayer(0, 0, 0, 0);
+            canvas.Save();
+            canvas.Translate(0, Dp(1));
+            canvas.DrawPath(path, _paintRim);
+            canvas.Restore();
+        }
 
         string label = KeyLabel(keyId);
         string icon = IconForKey(keyId);
-        float labelOffset = _arm * 0.62f;
 
         float cx = r.CenterX();
         float cy = r.CenterY();
@@ -129,10 +139,10 @@ public sealed class DpadView : View
         if (keyId == _leftKey) cx -= _arm * 0.55f;
         if (keyId == _rightKey) cx += _arm * 0.55f;
 
-        _paintIcon.Color = pressed ? Color.Argb(0xFF, 0x1A, 0x1A, 0x1A) : IconColor;
+        _paintIcon.Color = IconColor;
         canvas.DrawText(icon, cx, cy - _labelTextSize * 0.05f, _paintIcon);
 
-        _paintLabel.Color = pressed ? Color.Argb(0xFF, 0x1A, 0x1A, 0x1A) : LabelColor;
+        _paintLabel.Color = LabelColor;
         canvas.DrawText(label, cx, cy + _labelTextSize * 0.95f, _paintLabel);
     }
 
