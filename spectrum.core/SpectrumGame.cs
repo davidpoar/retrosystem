@@ -707,6 +707,11 @@ public class SpectrumGame : Game
         return sb.ToString();
     }
 
+    public void InitializeEmulation()
+    {
+        Initialize();
+    }
+
 
     public void TypeLoadCommand()
     {

@@ -46,6 +46,8 @@ internal static class Program
             logger: new ConsoleLogger(),
             assets: new FileSystemLoggerAssets(Directory.GetCurrentDirectory()));
 
+        _game.InitializeEmulation();
+
         Console.WriteLine("[OK] Spectrum inicializado");
         Console.WriteLine($"[OK] Cinta: {(_tapePath ?? "(ninguna)")}");
         Console.WriteLine();
