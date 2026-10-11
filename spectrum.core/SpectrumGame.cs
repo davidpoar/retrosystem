@@ -612,10 +612,15 @@ public class SpectrumGame : Game
         ReleaseAllVirtualKeys();
         typeStringBuffer = null;
         typeStringCharIndex = 0;
-        typeStringFrameDelay = 6;
+        typeStringFrameDelay = 8;
         typeStringBuffer = LOAD_COMMAND_SEQUENCE;
         typeStringCharIndex = 0;
-        typeStringFrameCounter = -75;
+        typeStringFrameCounter = -100;
+        logger.Info($"[TYPE] TypeLoadCommand: buffer='{LOAD_COMMAND_SEQUENCE}' len={LOAD_COMMAND_SEQUENCE.Length}");
+        for (int i = 0; i < LOAD_COMMAND_SEQUENCE.Length; i++)
+        {
+            logger.Info($"[TYPE]   [{i}] U+{(int)LOAD_COMMAND_SEQUENCE[i]:X4}");
+        }
     }
 
     private const string LOAD_COMMAND_SEQUENCE = "\u0010\u0011\u0011\n";
@@ -654,9 +659,15 @@ public class SpectrumGame : Game
         typeStringFrameCounter++;
         if (typeStringFrameCounter < typeStringFrameDelay) return;
         typeStringFrameCounter = 0;
-        if (typeStringCharIndex >= typeStringBuffer.Length) { typeStringBuffer = null; return; }
+        if (typeStringCharIndex >= typeStringBuffer.Length)
+        {
+            logger.Info($"[TYPE] Buffer terminado, total {typeStringBuffer.Length} chars");
+            typeStringBuffer = null;
+            return;
+        }
 
         char c = typeStringBuffer[typeStringCharIndex++];
+        logger.Info($"[TYPE] Char {typeStringCharIndex - 1}/{typeStringBuffer.Length}: U+{(int)c:X4}");
         ReleaseAllVirtualKeys();
         TypeChar(c);
     }
