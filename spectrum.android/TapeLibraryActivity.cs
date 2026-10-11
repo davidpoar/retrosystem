@@ -155,10 +155,17 @@ public class TapeLibraryActivity : Activity
 
     private void OnTapeClicked(object? sender, TapeInfo info)
     {
-        if (string.IsNullOrEmpty(info.FilePath)) return;
+        Dbg.I($"Library.OnTapeClicked: {info.FilePath} (exists={System.IO.File.Exists(info.FilePath)})");
+        if (string.IsNullOrEmpty(info.FilePath))
+        {
+            Dbg.E("TapeFilePath está vacío");
+            Toast.MakeText(this, "Error: ruta vacía", ToastLength.Long)?.Show();
+            return;
+        }
         if (!System.IO.File.Exists(info.FilePath))
         {
-            Toast.MakeText(this, $"No se encuentra: {info.DisplayName}", ToastLength.Short)?.Show();
+            Toast.MakeText(this, $"No se encuentra: {info.FileName}", ToastLength.Short)?.Show();
+            Dbg.E($"Archivo no encontrado: {info.FilePath}");
             return;
         }
 
@@ -167,6 +174,7 @@ public class TapeLibraryActivity : Activity
         var result = new Intent();
         result.PutExtra(ResultTapePath, info.FilePath);
         result.PutExtra(ResultTapeName, info.DisplayName);
+        Dbg.I($"Library devuelve: path={info.FilePath} name={info.DisplayName}");
         SetResult(Result.Ok, result);
         Finish();
     }
@@ -175,21 +183,32 @@ public class TapeLibraryActivity : Activity
     {
         base.OnActivityResult(requestCode, resultCode, data);
 
+        Dbg.I($"Library.OnActivityResult req={requestCode} result={resultCode}");
+
         if (requestCode == FilePickerHelper.RequestCodeLoadTape)
         {
             var (ok, fileName, localPath, error) = FilePickerHelper.HandleResult(this, requestCode, resultCode, data);
+            Dbg.I($"Picker result: ok={ok} file={fileName} path={localPath} err={error}");
             if (ok && localPath != null)
             {
+                if (!System.IO.File.Exists(localPath))
+                {
+                    Toast.MakeText(this, $"Error: copia no existe {localPath}", ToastLength.Long)?.Show();
+                    Dbg.E($"Archivo copiado no existe: {localPath}");
+                    return;
+                }
                 _recents?.Add(localPath, fileName ?? System.IO.Path.GetFileNameWithoutExtension(localPath));
                 var result = new Intent();
                 result.PutExtra(ResultTapePath, localPath);
                 result.PutExtra(ResultTapeName, fileName ?? System.IO.Path.GetFileNameWithoutExtension(localPath));
+                Dbg.I($"Library picker devuelve: {localPath}");
                 SetResult(Result.Ok, result);
                 Finish();
             }
             else if (!string.IsNullOrEmpty(error))
             {
                 Toast.MakeText(this, $"Error: {error}", ToastLength.Long)?.Show();
+                Dbg.E($"Picker error: {error}");
             }
         }
     }

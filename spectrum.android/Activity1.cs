@@ -282,19 +282,38 @@ namespace retro.spectrum.android
         {
             base.OnActivityResult(requestCode, resultCode, data);
 
-            if (requestCode == LibraryRequestCode && resultCode == Result.Ok && data != null)
+            Dbg.I($"OnActivityResult req={requestCode} result={resultCode} dataNull={data == null}");
+
+            if (requestCode == LibraryRequestCode)
             {
+                if (resultCode != Result.Ok)
+                {
+                    ShowToast("Selección cancelada");
+                    return;
+                }
+                if (data == null)
+                {
+                    ShowToast("Error: library devolvió data null");
+                    return;
+                }
                 string? tapePath = data.GetStringExtra(TapeLibraryActivity.ResultTapePath);
                 string? tapeName = data.GetStringExtra(TapeLibraryActivity.ResultTapeName);
+                ShowToast($"Library result: path={(tapePath == null ? "NULL" : tapePath.Length.ToString())} name={tapeName ?? "NULL"}");
+                Dbg.I($"Library result: path={tapePath} name={tapeName}");
                 if (!string.IsNullOrEmpty(tapePath))
                 {
                     LoadTapeFromPath(tapePath, tapeName);
                 }
+                else
+                {
+                    ShowToast("Error: path vacío desde library");
+                }
                 return;
             }
 
-            if (requestCode == OnlineRequestCode && resultCode == Result.Ok && data != null)
+            if (requestCode == OnlineRequestCode)
             {
+                if (resultCode != Result.Ok || data == null) { ShowToast("Online cancelado"); return; }
                 string? tapePath = data.GetStringExtra(OnlineSearchActivity.ResultTapePath);
                 string? tapeName = data.GetStringExtra(OnlineSearchActivity.ResultTapeName);
                 if (!string.IsNullOrEmpty(tapePath))
@@ -307,6 +326,7 @@ namespace retro.spectrum.android
             if (requestCode == FilePickerHelper.RequestCodeLoadTape)
             {
                 var (ok, fileName, localPath, error) = FilePickerHelper.HandleResult(this, requestCode, resultCode, data);
+                ShowToast($"Picker: ok={ok} file={fileName ?? "NULL"} path={(localPath == null ? "NULL" : localPath.Length.ToString())} err={error ?? "-"}");
                 if (ok && localPath != null)
                 {
                     LoadTapeFromPath(localPath, fileName);
@@ -337,9 +357,18 @@ namespace retro.spectrum.android
         private void LoadTapeFromPath(string path, string? displayName)
         {
             Dbg.I($"LoadTapeFromPath: {displayName} -> {path}");
-            if (_game == null) return;
+            ShowToast($"Cargando: {displayName ?? System.IO.Path.GetFileName(path)}");
+            if (_game == null) { ShowToast("Error: _game es null"); return; }
+
+            if (!System.IO.File.Exists(path))
+            {
+                ShowToast($"Error: archivo no existe: {path}");
+                Dbg.E($"Archivo no existe: {path}");
+                return;
+            }
 
             bool loaded = _game.LoadTapeAndAutoType(path);
+            ShowToast(loaded ? $"▶ {_game.LoadedTapeName} cargado" : $"Falló carga: {displayName ?? path}");
             if (loaded)
             {
                 ShowToast($"▶ {_game.LoadedTapeName} cargado");

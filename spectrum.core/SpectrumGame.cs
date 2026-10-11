@@ -497,11 +497,27 @@ public class SpectrumGame : Game
     {
         try
         {
-            logger.Info($"[TAPE] Intentando cargar: {path}");
-            logger.Info($"[TAPE] Existe: {System.IO.File.Exists(path)}");
+            logger.Info($"[TAPE] LoadTapeFromPath: {path}");
+            bool directExists = System.IO.File.Exists(path);
+            logger.Info($"[TAPE] File.Exists directo: {directExists}");
+
             if (!assets.Exists(path))
             {
-                logger.Error($"[TAPE] No se encontró la cinta: {path}");
+                logger.Error($"[TAPE] assets.Exists dijo false: {path}");
+                if (directExists)
+                {
+                    logger.Info("[TAPE] Pero File.Exists dijo true — leyendo directamente");
+                    try
+                    {
+                        var rawBytes = System.IO.File.ReadAllBytes(path);
+                        return LoadTapeFromBytes(rawBytes, path);
+                    }
+                    catch (Exception ex2)
+                    {
+                        logger.Error($"[TAPE] Lectura directa falló: {ex2.Message}");
+                        return false;
+                    }
+                }
                 return false;
             }
             var bytes = assets.ReadAllBytes(path);
