@@ -86,7 +86,7 @@ public class SynthesizedMsxKansasCityBlock : MsxKansasCityBlock
     private byte[] _data;
     private ushort _pilotCount;
 
-    public byte[] Data => _data;
+    public new byte[] Data => _data;
 
     public SynthesizedMsxKansasCityBlock(byte[] data, ushort pilotCount)
     {
