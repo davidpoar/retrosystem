@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+This file contains an xml description of a font, and will be read by the XNA
+Framework Content Pipeline. Follow the guides on http://create.msdn.com for
+further information.
+-->
+<XnaContent xmlns:Pipeline="Microsoft.Xna.Framework.Content.Pipeline">
+  <Asset Type="Framework:Microsoft.Xna.Framework.Content.Pipeline.Processors.FontDescription">
+    <FontName>Arial</FontName>
+    <Size>14</Size>
+    <Style>Regular</Style>
+    <CharacterRegions>
+      <CharacterRegion>
+        <Start>&#32;</Start>
+        <End>&#126;</End>
+      </CharacterRegion>
+    </CharacterRegions>
+  </Asset>
+</XnaContent>

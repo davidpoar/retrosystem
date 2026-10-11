@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using retro;
 using retro.spectrum;
-
-namespace retro.spectrum.debug;
 
 internal static class Program
 {
@@ -46,7 +49,7 @@ internal static class Program
             logger: new ConsoleLogger(),
             assets: new FileSystemLoggerAssets(Directory.GetCurrentDirectory()));
 
-        _game.InitializeEmulation();
+        _game.InitializeNoGraphics();
 
         Console.WriteLine("[OK] Spectrum inicializado");
         Console.WriteLine($"[OK] Cinta: {(_tapePath ?? "(ninguna)")}");
@@ -84,7 +87,7 @@ internal static class Program
         while (true)
         {
             Console.WriteLine();
-            Console.WriteLine("=== MENÚ DEBUG ===");
+            Console.WriteLine("=== MENÚ DEBUG ZX SPECTRUM ===");
             Console.WriteLine("  1) Ver estado del Spectrum (PC, A, pantalla)");
             Console.WriteLine("  2) Ver buffer de entrada 0x5C00-0x5C04");
             Console.WriteLine("  3) Inyectar LOAD \"\" + Enter en buffer (directo)");
@@ -96,6 +99,7 @@ internal static class Program
             Console.WriteLine("  9) Avanzar 500 frames (10 segundos)");
             Console.WriteLine("  r) Dump pantalla 32x24 a consola");
             Console.WriteLine("  m) Dump memoria de pantalla 0x4000-0x5AFF");
+            Console.WriteLine("  o) Buscar y descargar juego online (ZXInfo)");
             Console.WriteLine("  x) Salir");
             Console.WriteLine();
             Console.Write("Opción: ");
@@ -116,9 +120,167 @@ internal static class Program
                 case "9": AdvanceFrames(500); break;
                 case "r": DumpScreen(); break;
                 case "m": DumpMemory(); break;
+                case "o": OnlineSearch(); break;
                 case "x": return;
                 default: Console.WriteLine("[ERROR] Opción inválida"); break;
             }
+        }
+    }
+
+    private static async void OnlineSearch()
+    {
+        Console.Write("Buscar juego (ej: cybernoid, manic miner): ");
+        var query = Console.ReadLine()?.Trim();
+        if (string.IsNullOrEmpty(query)) return;
+
+        Console.WriteLine($"[*] Buscando '{query}' en ZXInfo...");
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        client.DefaultRequestHeaders.Add("User-Agent", "RetroSystem-Debug/1.3");
+
+        try
+        {
+            var url = $"https://api.zxinfo.dk/v3/search?query={Uri.EscapeDataString(query)}&from=0&size=10";
+            var json = await client.GetStringAsync(url);
+            using var doc = JsonDocument.Parse(json);
+            var hits = doc.RootElement.GetProperty("hits").GetProperty("hits");
+
+            Console.WriteLine($"[OK] Encontrados {hits.GetArrayLength()} resultados:");
+            Console.WriteLine();
+
+            var results = new List<(int idx, string id, string title, string year, string publisher, string size, string path)>();
+            int idx = 0;
+            foreach (var hit in hits.EnumerateArray())
+            {
+                var src = hit.GetProperty("_source");
+                var title = src.GetProperty("title").GetString() ?? "?";
+                var year = src.TryGetProperty("originalYearOfRelease", out var y) ? y.ToString() : "?";
+                var pub = "";
+                if (src.TryGetProperty("publishers", out var pubs) && pubs.GetArrayLength() > 0)
+                    pub = pubs[0].GetProperty("name").GetString() ?? "";
+                var id = hit.GetProperty("_id").GetString() ?? "";
+
+                string size = "?";
+                string path = "";
+                if (src.TryGetProperty("releases", out var rels))
+                {
+                    foreach (var rel in rels.EnumerateArray())
+                    {
+                        if (rel.TryGetProperty("files", out var files))
+                        {
+                            foreach (var f in files.EnumerateArray())
+                            {
+                                var p = f.GetProperty("path").GetString() ?? "";
+                                if (p.EndsWith(".tzx.zip", StringComparison.OrdinalIgnoreCase) ||
+                                    p.EndsWith(".tap.zip", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    size = f.GetProperty("size").ToString();
+                                    path = p;
+                                    break;
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(path)) break;
+                        }
+                    }
+                }
+
+                results.Add((idx, id, title, year, pub, size, path));
+                Console.WriteLine($"  [{idx}] {title} ({year}) - {pub} - {size} bytes");
+                Console.WriteLine($"       {path}");
+                idx++;
+            }
+
+            if (results.Count == 0)
+            {
+                Console.WriteLine("[!] No se encontraron resultados");
+                return;
+            }
+
+            Console.WriteLine();
+            Console.Write("Número a descargar (o 'n' para cancelar): ");
+            var input = Console.ReadLine()?.Trim();
+            if (string.IsNullOrEmpty(input) || input.ToLowerInvariant() == "n") return;
+            if (!int.TryParse(input, out int choice) || choice < 0 || choice >= results.Count)
+            {
+                Console.WriteLine("[ERROR] Número inválido");
+                return;
+            }
+
+            var sel = results[choice];
+            Console.WriteLine($"[*] Descargando {sel.title} desde https://worldofspectrum.net{sel.path}");
+
+            var downloadUrl = sel.path.StartsWith("/")
+                ? $"https://worldofspectrum.net{sel.path}"
+                : $"https://worldofspectrum.net/{sel.path}";
+
+            var bytes = await client.GetByteArrayAsync(downloadUrl);
+
+            if (bytes.Length < 100)
+            {
+                Console.WriteLine($"[ERROR] Descarga demasiado pequeña ({bytes.Length} bytes), no es un zip válido");
+                return;
+            }
+
+            if (bytes[0] != 0x50 || bytes[1] != 0x4B)
+            {
+                string preview = System.Text.Encoding.UTF8.GetString(bytes, 0, Math.Min(bytes.Length, 200));
+                Console.WriteLine($"[ERROR] No es un ZIP (inicio: {preview.Substring(0, Math.Min(80, preview.Length))}...)");
+                return;
+            }
+
+            string safeName = string.Join("_", sel.title.Split(Path.GetInvalidFileNameChars()));
+            if (string.IsNullOrEmpty(safeName)) safeName = "game";
+            string outDir = Path.Combine(Directory.GetCurrentDirectory(), "downloads");
+            Directory.CreateDirectory(outDir);
+            string zipPath = Path.Combine(outDir, safeName + ".zip");
+
+            await File.WriteAllBytesAsync(zipPath, bytes);
+
+            string finalPath = zipPath;
+            if (zipPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    using var archive = ZipFile.OpenRead(zipPath);
+                    var entry = archive.Entries.FirstOrDefault(e =>
+                        e.FullName.EndsWith(".tap", StringComparison.OrdinalIgnoreCase) ||
+                        e.FullName.EndsWith(".tzx", StringComparison.OrdinalIgnoreCase));
+                    if (entry != null)
+                    {
+                        finalPath = Path.Combine(outDir, safeName + Path.GetExtension(entry.FullName));
+                        entry.ExtractToFile(finalPath, overwrite: true);
+                        File.Delete(zipPath);
+                        Console.WriteLine($"[OK] Extraído: {entry.FullName} -> {finalPath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Zip inválido: {ex.Message}");
+                    return;
+                }
+            }
+
+            Console.WriteLine($"[OK] Descargado: {finalPath} ({bytes.Length} bytes)");
+            Console.WriteLine();
+            Console.Write("¿Cargar en el Spectrum ahora? (s/n): ");
+            var resp = Console.ReadLine()?.Trim().ToLowerInvariant();
+            if (resp == "s" || resp == "si" || resp == "y" || resp == "yes")
+            {
+                bool ok = _game?.LoadTapeFromPath(finalPath) ?? false;
+                if (ok)
+                {
+                    Console.WriteLine("[OK] Cinta cargada. Auto-typing en 2 segundos...");
+                    Thread.Sleep(2000);
+                    _game?.LoadTapeAndAutoType(finalPath);
+                }
+                else
+                {
+                    Console.WriteLine($"[ERROR] No se pudo cargar: {_game?.LastTapeError}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] {ex.GetType().Name}: {ex.Message}");
         }
     }
 
@@ -239,18 +401,30 @@ internal sealed class ConsoleLogger : ILogger
 
 internal sealed class FileSystemLoggerAssets : IAssetProvider
 {
-    private readonly string _basePath;
-    public FileSystemLoggerAssets(string basePath) { _basePath = basePath; }
-    public bool Exists(string relativePath)
+    private readonly string[] _paths;
+    public FileSystemLoggerAssets(string basePath)
     {
-        if (Path.IsPathRooted(relativePath) && File.Exists(relativePath)) return true;
-        return File.Exists(Path.Combine(_basePath, relativePath));
+        _paths = new[] {
+            basePath,
+            Path.Combine(basePath, "spectrum"),
+            AppDomain.CurrentDomain.BaseDirectory,
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "spectrum"),
+            @"C:\Dev\retrosystem\spectrum.debug",
+            @"C:\Dev\retrosystem\spectrum"
+        }.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
-    public byte[]? ReadAllBytes(string relativePath)
+    public bool Exists(string r)
     {
-        if (Path.IsPathRooted(relativePath) && File.Exists(relativePath)) return File.ReadAllBytes(relativePath);
-        var full = Path.Combine(_basePath, relativePath);
-        return File.Exists(full) ? File.ReadAllBytes(full) : null;
+        if (Path.IsPathRooted(r) && File.Exists(r)) return true;
+        foreach (var p in _paths) if (File.Exists(Path.Combine(p, r))) return true;
+        return false;
     }
-    public IEnumerable<string> ListFiles(string relativeSubdir) => Enumerable.Empty<string>();
+    public byte[]? ReadAllBytes(string r)
+    {
+        if (Path.IsPathRooted(r) && File.Exists(r)) return File.ReadAllBytes(r);
+        foreach (var p in _paths) { var f = Path.Combine(p, r); if (File.Exists(f)) return File.ReadAllBytes(f); }
+        return null;
+    }
+    public IEnumerable<string> ListFiles(string r) => Enumerable.Empty<string>();
 }
+

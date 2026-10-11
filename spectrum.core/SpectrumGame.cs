@@ -713,7 +713,32 @@ public class SpectrumGame : Game
     }
 
 
-    public void TypeLoadCommand()
+    
+    public void InitializeNoGraphics()
+    {
+        ClearKeyboardMatrix();
+        ClearVirtualKeys();
+        byte[]? romData = LoadRom();
+        if (romData != null && romData.Length >= 16384)
+        {
+            memoryBus = new SpectrumMemoryBus(romData);
+            cpu = new Z80.Z80();
+            cpu.MemoryBus = memoryBus;
+            ula = new ULA(memoryBus);
+            cpu.OnOutputPort = (port, val, cycle) => { ushort port16 = Get16BitPort(port); if ((port16 & 0x01) == 0) { byte nc = (byte)(val & 0x07); ula.UpdateBorderColor(nc, cycle); beeperState = (val & 0x18) != 0; lastPortFeValue = val; } };
+            cpu.OnInputPort = (port, cycle) => { ushort port16 = Get16BitPort(port); if ((port16 & 0x01) == 0) { int nowMs = Environment.TickCount; if (nowMs - lastKeyboardPollMs >= 5) { UpdateKeyboardState(); lastKeyboardPollMs = nowMs; } byte result = 0x1F; byte rs = (byte)(port16 >> 8); for (int i = 0; i < 8; i++) { if ((rs & (1 << i)) == 0) result &= keyboardMatrix[i]; } if (tapePlayer != null && tapePlayer.CurrentSignalLevel) result |= 0x40; return (byte)(result | 0xA0); } return 0xFF; };
+            cpu.Reset();
+            isRomLoaded = true;
+            logger.Info("[INFO] ROM cargada (modo consola, sin gráficos)");
+        }
+        else
+        {
+            logger.Info("[ERROR] ROM no encontrada");
+        }
+    }
+
+
+public void TypeLoadCommand()
     {
         ReleaseAllVirtualKeys();
         typeStringBuffer = null;
