@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#0A0E1A</color>
+    <color name="backgroundCard">#161B2C</color>
+    <color name="backgroundPressed">#252A3D</color>
+    <color name="textPrimary">#E8EAED</color>
+    <color name="textSecondary">#9AA0A6</color>
+    <color name="textTertiary">#5F6368</color>
+    <color name="accent">#60E070</color>
+    <color name="accentSecondary">#4A90E2</color>
+    <color name="accentTertiary">#E0A040</color>
+    <color name="border">#2A2F40</color>
+    <color name="error">#E04050</color>
+    <color name="recentBadge">#7B61FF</color>
+</resources>

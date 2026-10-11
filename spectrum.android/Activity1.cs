@@ -86,14 +86,14 @@ namespace retro.spectrum.android
             _statusTape.SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
             _statusTape.Text = "⏹ (sin cinta)";
 
-            var btnMenuTopBar = new Button(this) { Text = "☰ LOAD" };
+            var btnMenuTopBar = new Button(this) { Text = "📂  Librería" };
             btnMenuTopBar.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x40, 0xA0, 0x40));
             btnMenuTopBar.SetTextColor(Android.Graphics.Color.White);
             btnMenuTopBar.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
             btnMenuTopBar.SetAllCaps(false);
             btnMenuTopBar.SetPadding(dp(8), 0, dp(8), 0);
             btnMenuTopBar.SetShadowLayer(2, 1, 1, Android.Graphics.Color.Black);
-            btnMenuTopBar.Click += (s, e) => FilePickerHelper.LaunchTapePicker(this);
+            btnMenuTopBar.Click += (s, e) => LaunchTapeLibrary();
 
             var btnMenuButton = new Button(this) { Text = "☰" };
             btnMenuButton.SetBackgroundColor(Android.Graphics.Color.Argb(0xEE, 0x40, 0x40, 0x70));
@@ -165,7 +165,7 @@ namespace retro.spectrum.android
             {
                 case MenuOverlayView.MenuAction.LoadTape:
                     _menu?.Hide();
-                    FilePickerHelper.LaunchTapePicker(this);
+                    LaunchTapeLibrary();
                     break;
                 case MenuOverlayView.MenuAction.TypeLoad:
                     _game?.TypeLoadCommand();
@@ -201,16 +201,20 @@ namespace retro.spectrum.android
                     "  B (rojo):   M        (acción secundaria)\n" +
                     "  KBD:  muestra/oculta el teclado QWERTY\n" +
                     "  TAPE:  play/pause de la cinta\n\n" +
-                    "MENÚ (icono arriba a la derecha)\n" +
-                    "  Cargar cinta:  abre el selector de archivos\n" +
+                    "LIBRERÍA (botón 📂 arriba)\n" +
+                    "  Muestra cintas recientes y archivos .tap/.tzx\n" +
+                    "  encontrados en Download, Spectrum, etc.\n" +
+                    "  Toca una cinta para cargarla.\n" +
+                    "  Pulsa 'Buscar...' para elegir cualquier archivo.\n\n" +
+                    "MENÚ (☰ arriba a la derecha)\n" +
                     "  Teclear LOAD:  auto-escribe LOAD\"\" + Enter\n" +
                     "  Fast Load:  carga cintas sin esperar el audio\n" +
                     "  Reset:  reinicia el Spectrum\n\n" +
                     "ATAJOS\n" +
                     "  Para cargar un juego:\n" +
-                    "  1) Pulsa 'Cargar cinta' y elige el .tap/.tzx\n" +
-                    "  2) Activa 'Fast Load: ON' para carga rápida\n" +
-                    "  3) Pulsa 'Teclear LOAD' o escribe LOAD\"\" + Enter\n" +
+                    "  1) Pulsa 📂 Librería y elige una cinta\n" +
+                    "  2) Activa Fast Load en el menú\n" +
+                    "  3) Pulsa 'Teclear LOAD' (envía LOAD\"\" + Enter)\n" +
                     "  4) La pantalla mostrará 'Loading...'\n\n" +
                     "(c) 1982 Sinclair Research Ltd (Amstrad plc)\n" +
                     "ROM distribuida con permiso de Amstrad")
@@ -287,26 +291,50 @@ namespace retro.spectrum.android
         {
             base.OnActivityResult(requestCode, resultCode, data);
 
+            if (requestCode == LibraryRequestCode && resultCode == Result.Ok && data != null)
+            {
+                string? tapePath = data.GetStringExtra(TapeLibraryActivity.ResultTapePath);
+                string? tapeName = data.GetStringExtra(TapeLibraryActivity.ResultTapeName);
+                if (!string.IsNullOrEmpty(tapePath))
+                {
+                    LoadTapeFromPath(tapePath, tapeName);
+                }
+                return;
+            }
+
             if (requestCode == FilePickerHelper.RequestCodeLoadTape)
             {
                 var (ok, fileName, localPath, error) = FilePickerHelper.HandleResult(this, requestCode, resultCode, data);
                 if (ok && localPath != null)
                 {
-                    Dbg.I($"Cinta seleccionada: {fileName} -> {localPath}");
-                    if (_game != null)
-                    {
-                        bool loaded = _game.LoadTapeFromPath(localPath);
-                        if (loaded)
-                        {
-                            _game.ToggleTape();
-                        }
-                    }
-                    UpdateStatusBar();
+                    LoadTapeFromPath(localPath, fileName);
                 }
                 else if (!string.IsNullOrEmpty(error))
                 {
                     Dbg.E($"Error al cargar cinta: {error}");
                     ShowToast($"Error: {error}");
+                }
+            }
+        }
+
+        private const int LibraryRequestCode = 2001;
+
+        private void LaunchTapeLibrary()
+        {
+            var intent = new Intent(this, typeof(TapeLibraryActivity));
+            StartActivityForResult(intent, LibraryRequestCode);
+        }
+
+        private void LoadTapeFromPath(string path, string? displayName)
+        {
+            Dbg.I($"Cinta seleccionada: {displayName} -> {path}");
+            if (_game != null)
+            {
+                bool loaded = _game.LoadTapeFromPath(path);
+                if (loaded)
+                {
+                    _game.ToggleTape();
+                    UpdateStatusBar();
                 }
             }
         }

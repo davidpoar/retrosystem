@@ -2,6 +2,25 @@
 
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
+## [1.2.0] - 2026-10-11
+
+### Añadido
+
+- **Pantalla de librería** (`TapeLibraryActivity`) con patrón inspirado en [Lemuroid](https://github.com/Swordfish90/Lemuroid): lista de cintas con miniaturas, badges TAP/TZX, formato y fecha.
+- **Sistema de recientes** (`RecentsManager`): las últimas 8 cintas cargadas se guardan en SharedPreferences y se muestran en una sección "Recientes" arriba.
+- **Escaneo automático de cintas** en `Download`, `Spectrum`, `Tapes`, `ZXSpectrum`, almacenamiento externo y caché.
+- **Botón "Buscar..."** en la librería para invocar el file picker del sistema (Storage Access Framework) si el escaneo automático no encuentra la cinta.
+- **Paleta de colores oscuros** (`Colors.xml`) inspirada en Lemuroid.
+- **Iconos vectoriales** para cassette, play, pause, reset, help, search, star, back, etc.
+- **Cards con bordes redondeados** y efecto pressed para las cintas (`bg_card_selectable.xml`).
+- **Layouts XML reutilizables** (`activity_tape_library.xml`, `item_tape.xml`, `item_section_header.xml`).
+- **Tema `AppTheme`** con colores oscuros consistentes.
+
+### Cambiado
+
+- El botón `📂 LOAD` ahora abre la **librería** (no directamente el file picker).
+- Texto de ayuda actualizado para reflejar el nuevo flujo "Librería → Seleccionar → Cargar".
+
 ## [1.1.0] - 2026-10-11
 
 ### Añadido

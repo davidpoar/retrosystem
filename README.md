@@ -201,12 +201,30 @@ pwsh spectrum.android/fetch_rom.ps1
 
 ## Créditos y licencias
 
-- **Código base**: derivado del proyecto personal `z80emu` del mismo autor. El núcleo Z80, la biblioteca Tape y las abstracciones comunes proceden de dicho proyecto.
-- **MonoGame**: el renderizado y el audio se realizan con [MonoGame](http://monogame.net) (licencia MS-PL). Copyright © 2004–2024 MonoGame Team.
-- **ZX Spectrum 48K**: la arquitectura del hardware emulado es obra de Sinclair Research Ltd (1982).
-- **ROM 48K**: copyright (C) 1982 Sinclair Research Ltd, actualmente propiedad de Amstrad plc. Amstrad ha dado [permiso explícito](https://groups.google.com/forum/?hl=en#!msg/comp.sys.amstrad.8bit/HtpBU2Bzv_U/HhNDSU3MksAJ) para distribuir la ROM junto con emuladores. Se incluye en este proyecto con permiso.
-- **ROM descargada desde**: [rustzx/rustzx](https://github.com/rustzx/rustzx) (MIT license), que mantiene una copia de la ROM con la atribución correcta.
-- **Documentación técnica de la ULA**: basado en el libro de Chris Smith *"The ZX Spectrum ULA: How to Design a Microcomputer"*.
+Este proyecto no habría sido posible sin el trabajo de la comunidad open source. Agradecimientos a:
+
+### Proyectos base
+- **[z80emu](C:\Dev\z80emu)** — Proyecto personal del mismo autor. El núcleo Z80, la biblioteca Tape y las abstracciones comunes proceden de ahí.
+- **[MonoGame](http://monogame.net)** — Framework gráfico y de audio (MS-PL). Copyright © 2004–2024 MonoGame Team.
+
+### Hardware emulado
+- **Sinclair Research Ltd (1982)** — Arquitectura del ZX Spectrum 48K.
+- **Chris Smith** — *"The ZX Spectrum ULA: How to Design a Microcomputer"*, referencia técnica de la ULA.
+
+### ROM
+- **Amstrad plc** — Copyright (C) 1982 Sinclair Research Ltd. Amstrad ha dado [permiso explícito](https://groups.google.com/forum/?hl=en#!msg/comp.sys.amstrad.8bit/HtpBU2Bzv_U/HhNDSU3MksAJ) para distribuir la ROM junto con emuladores. Se incluye en este proyecto con permiso.
+- **[rustzx/rustzx](https://github.com/rustzx/rustzx)** (MIT) — Fuente de la ROM 48K descargada en build time.
+- **[fuse-emulator/fuse](https://github.com/fuse-emulator/fuse)** (GPL) — Fuente alternativa de la ROM.
+
+### Interfaces y patrones UI (inspiración)
+- **[Swordfish90/Lemuroid](https://github.com/Swordfish90/Lemuroid)** (GPL-3.0) — Inspiración principal para la pantalla de librería (`TapeLibraryActivity`), el patrón de recientes con SharedPreferences, el escaneo automático de archivos, y la estética general (paleta oscura, cards redondeadas, badges TAP/TZX, sección "Recientes" + "Todas las cintas"). El código ha sido reescrito desde cero en C# / Android Views; el diseño visual está inspirado en este proyecto.
+- **[deanthecoder/ZXSpeculator](https://github.com/deanthecoder/ZXSpeculator)** (MIT) — Patrones de mapeo de teclado, Type LOAD, y la idea de integrar una búsqueda de cintas desde el menú.
+- **[rustzx/rustzx](https://github.com/rustzx/rustzx)** (MIT) — Incluye la ROM con permiso de Amstrad, lo que nos permite empaquetarla en el APK.
+
+### Cómo citar / dar crédito
+Si haces un fork de este proyecto, por favor mantén esta sección de créditos y enlaza a los proyectos OSS de los que deriva.
+
+### Licencia de este proyecto
 
 ### Licencia de este proyecto
 
