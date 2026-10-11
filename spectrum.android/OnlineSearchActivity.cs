@@ -181,11 +181,19 @@ public class OnlineSearchActivity : Activity
         try
         {
             var bytes = await _client.DownloadFileAsync(url, null, ct);
-            Android.Util.Log.Info("OnlineSearch", $"Descargado: {bytes.Length} bytes a {localPath}");
+            Android.Util.Log.Info("OnlineSearch", $"Descargado: {bytes.Length} bytes de {url}");
 
             if (bytes.Length < 100)
             {
-                throw new Exception($"Descarga demasiado pequeña ({bytes.Length} bytes), ¿URL incorrecta?");
+                string preview = bytes.Length > 0 ? System.Text.Encoding.UTF8.GetString(bytes, 0, Math.Min(bytes.Length, 200)) : "(vacío)";
+                throw new Exception($"Descarga muy pequeña ({bytes.Length} B). Contenido: {preview}");
+            }
+
+            if (bytes[0] != 0x50 || bytes[1] != 0x4B)
+            {
+                string preview = System.Text.Encoding.UTF8.GetString(bytes, 0, Math.Min(bytes.Length, 300));
+                Android.Util.Log.Error("OnlineSearch", $"No es un zip. Inicio: {preview}");
+                throw new Exception($"No es un ZIP (inicio: {preview.Substring(0, Math.Min(100, preview.Length))}…)");
             }
 
             await System.IO.File.WriteAllBytesAsync(localPath, bytes, ct);
@@ -213,8 +221,8 @@ public class OnlineSearchActivity : Activity
                 }
                 catch (Exception ex)
                 {
-                    Android.Util.Log.Warn("OnlineSearch", $"Error al descomprimir: {ex.Message}");
-                    throw new Exception($"Zip inválido: {ex.Message}");
+                    Android.Util.Log.Warn("OnlineSearch", $"Error al descomprimir: {ex.GetType().Name}: {ex.Message}");
+                    throw new Exception($"Zip inválido ({bytes.Length} B): {ex.Message}");
                 }
             }
 
@@ -230,7 +238,10 @@ public class OnlineSearchActivity : Activity
         catch (Exception ex)
         {
             ShowDownloadProgress(hit, false);
-            Toast.MakeText(this, $"Descarga falló: {ex.Message}", ToastLength.Long)?.Show();
+            string msg = ex.Message;
+            if (ex.InnerException != null) msg += $" [{ex.InnerException.Message}]";
+            Toast.MakeText(this, $"✗ {msg}", ToastLength.Long)?.Show();
+            Android.Util.Log.Error("OnlineSearch", $"Download failed: {ex}");
         }
     }
 
