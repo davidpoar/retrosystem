@@ -1,0 +1,58 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Z80", "Z80\Z80.csproj", "{27BA695D-B860-492E-98AE-69F634E238DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tape", "Tape\Tape.csproj", "{F8913E89-EF73-4934-9A1F-E31338366D16}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "common\common.csproj", "{0B098285-2DD9-4528-A19B-8E4BBF621E4B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectrum.Core", "spectrum.core\spectrum.core.csproj", "{C8B2FC2C-DC9E-4ED3-BB51-284DD80C3E9C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectrum.Debug", "spectrum.debug\spectrum.debug.csproj", "{CADA212B-F24D-4F1F-AE0D-E9EFDF117C82}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectrum", "spectrum\spectrum.csproj", "{21A67BF4-F0A7-4E58-9396-D5869C72251F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectrum.Android", "spectrum.android\spectrum.android.csproj", "{FC623B09-0A58-42F6-8221-0D402F1AEA11}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{27BA695D-B860-492E-98AE-69F634E238DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27BA695D-B860-492E-98AE-69F634E238DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27BA695D-B860-492E-98AE-69F634E238DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27BA695D-B860-492E-98AE-69F634E238DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8913E89-EF73-4934-9A1F-E31338366D16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8913E89-EF73-4934-9A1F-E31338366D16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8913E89-EF73-4934-9A1F-E31338366D16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8913E89-EF73-4934-9A1F-E31338366D16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B098285-2DD9-4528-A19B-8E4BBF621E4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B098285-2DD9-4528-A19B-8E4BBF621E4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B098285-2DD9-4528-A19B-8E4BBF621E4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B098285-2DD9-4528-A19B-8E4BBF621E4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8B2FC2C-DC9E-4ED3-BB51-284DD80C3E9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8B2FC2C-DC9E-4ED3-BB51-284DD80C3E9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8B2FC2C-DC9E-4ED3-BB51-284DD80C3E9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8B2FC2C-DC9E-4ED3-BB51-284DD80C3E9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CADA212B-F24D-4F1F-AE0D-E9EFDF117C82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CADA212B-F24D-4F1F-AE0D-E9EFDF117C82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CADA212B-F24D-4F1F-AE0D-9E9EFDF117C82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CADA212B-F24D-4F1F-AE0D-9E9EFDF117C82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21A67BF4-F0A7-4E58-9396-D5869C72251F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21A67BF4-F0A7-4E58-9396-D5869C72251F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21A67BF4-F0A7-4E58-9396-D5869C72251F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21A67BF4-F0A7-4E58-9396-D5869C72251F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC623B09-0A58-42F6-8221-0D402F1AEA11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC623B09-0A58-42F6-8221-0D402F1AEA11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC623B09-0A58-42F6-8221-0D402F1AEA11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC623B09-0A58-42F6-8221-0D402F1AEA11}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

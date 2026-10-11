@@ -606,6 +606,107 @@ public class SpectrumGame : Game
         fastLoadBlockIndex = 0;
         logger.Info($"[FASTLOAD] {(enabled ? "Activado" : "Desactivado")}");
     }
+    public ushort GetPC() => cpu.PC;
+    public ushort GetSP() => cpu.SP;
+    public byte GetA() => cpu.A;
+    public ushort GetBC() => cpu.BC;
+    public ushort GetDE() => cpu.DE;
+    public ushort GetHL() => cpu.HL;
+    public ushort GetIX() => cpu.IX;
+    public ushort GetIY() => cpu.IY;
+    public int GetCycles() => cpu.Cycles;
+
+    public string DumpInputBuffer()
+    {
+        if (memoryBus == null) return "(no bus)";
+        int dummy = 0;
+        var sb = new System.Text.StringBuilder();
+        sb.Append("[");
+        for (int i = 0; i < 5; i++)
+        {
+            byte b = memoryBus.Read((ushort)(0x5C00 + i), ref dummy);
+            sb.Append(string.Format("0x{0:X2}", b));
+            if (i < 4) sb.Append(", ");
+        }
+        sb.Append("]  len=");
+        byte len = memoryBus.Read(0x5C3F, ref dummy);
+        sb.Append(len);
+        return sb.ToString();
+    }
+
+    public void InjectLoadToBuffer()
+    {
+        if (memoryBus == null) return;
+        int dummy = 0;
+        memoryBus.Write((ushort)0x5C00, 0xE5, ref dummy);
+        memoryBus.Write((ushort)0x5C01, 0x22, ref dummy);
+        memoryBus.Write((ushort)0x5C02, 0x22, ref dummy);
+        memoryBus.Write((ushort)0x5C03, 0x0D, ref dummy);
+        memoryBus.Write((ushort)0x5C3F, 0x04, ref dummy);
+        logger.Info("[INJECT] LOAD escape written to 0x5C00");
+    }
+
+    public void AdvanceFrames(int count)
+    {
+        if (!isRomLoaded || memoryBus == null) return;
+        for (int i = 0; i < count; i++)
+        {
+            ula.OnFrameStart(cpu.Cycles);
+            currentFrameCycles = 0;
+            bool interruptFired = false;
+            const int targetCycles = 69888;
+            const int intCycle = 1360;
+            while (currentFrameCycles < targetCycles)
+            {
+                if (!interruptFired && currentFrameCycles >= intCycle)
+                {
+                    cpu.InterruptPending = true;
+                    interruptFired = true;
+                }
+                int c = cpu.Step();
+                int elapsed = c <= 0 ? 4 : c;
+                currentFrameCycles += elapsed;
+                tapePlayer?.AdvanceCycles(elapsed);
+            }
+            UpdateKeyboardState();
+        }
+    }
+
+    public string DumpScreenText()
+    {
+        if (memoryBus == null) return "";
+        var sb = new System.Text.StringBuilder();
+        int dummy = 0;
+        for (int row = 0; row < 24; row++)
+        {
+            for (int col = 0; col < 32; col++)
+            {
+                ushort addr = (ushort)(0x4000 + row * 32 + col);
+                byte b = memoryBus.Read(addr, ref dummy);
+                sb.Append(b >= 32 && b < 127 ? (char)b : ' ');
+            }
+        }
+        return sb.ToString();
+    }
+
+    public string DumpScreenMemory()
+    {
+        if (memoryBus == null) return "(no bus)";
+        var sb = new System.Text.StringBuilder();
+        int dummy = 0;
+        for (int row = 0; row < 8; row++)
+        {
+            sb.Append(string.Format("[0x{0:X4}] ", 0x4000 + row * 32));
+            for (int col = 0; col < 32; col++)
+            {
+                byte b = memoryBus.Read((ushort)(0x4000 + row * 32 + col), ref dummy);
+                sb.Append(string.Format("{0:X2} ", b));
+            }
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
 
     public void TypeLoadCommand()
     {
