@@ -616,7 +616,7 @@ public class SpectrumGame : Game
         typeActionBuffer = new[] { 1, 2, 2, 3 };
         typeActionIndex = 0;
         typeStringFrameCounter = -100;
-        logger.Info("[TYPE] TypeLoadCommand iniciado: 4 acciones (LOAD, \", \", Enter)");
+        logger.Info($"[TYPE] TypeLoadCommand: buffer=[{string.Join(",", typeActionBuffer)}] delay={typeStringFrameDelay}");
     }
 
     private const string LOAD_COMMAND_SEQUENCE = "";
@@ -682,7 +682,7 @@ public class SpectrumGame : Game
         typeStringFrameCounter = 0;
         if (typeActionBuffer == null || typeActionIndex >= typeActionBuffer.Length)
         {
-            logger.Info($"[TYPE] Action buffer terminado, {typeActionIndex} acciones");
+            logger.Info($"[TYPE] Action buffer terminado después de {typeActionIndex} acciones");
             typeActionBuffer = null;
             typeActionIndex = 0;
             return;
@@ -691,21 +691,22 @@ public class SpectrumGame : Game
         ReleaseAllVirtualKeys();
 
         int action = typeActionBuffer[typeActionIndex++];
+        logger.Info($"[TYPE] Procesando acción [{typeActionIndex - 1}] = {action}");
         switch (action)
         {
             case 1:
                 PressVirtualKeyById(SpectrumKeyMap.CapsShift);
                 PressVirtualKeyById(SpectrumKeyMap.J);
-                logger.Info("[TYPE] Action: CapsShift+J (LOAD)");
+                logger.Info("[TYPE]   → CapsShift+J (LOAD)");
                 break;
             case 2:
                 PressVirtualKeyById(SpectrumKeyMap.SymbolShift);
                 PressVirtualKeyById(SpectrumKeyMap.P);
-                logger.Info("[TYPE] Action: SymbolShift+P (\")");
+                logger.Info("[TYPE]   → SymbolShift+P (\")");
                 break;
             case 3:
                 PressVirtualKeyById(SpectrumKeyMap.Enter);
-                logger.Info("[TYPE] Action: Enter");
+                logger.Info("[TYPE]   → Enter");
                 break;
         }
     }
