@@ -2,6 +2,19 @@
 
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
+## [1.3.2] - 2026-10-11
+
+### Corregido
+
+- **Bug: la barra de estado seguía mostrando "(sin cinta)" tras seleccionar una cinta.** El problema era que `AndroidAssetProvider.Exists` usaba `Path.Combine` con un path absoluto del cache, que a veces devolvía una ruta incorrecta. Ahora detecta paths absolutos con `Path.IsPathRooted` y hace `File.Exists` directo. También se añadieron logs detallados en `LoadTapeFromPath` para facilitar el diagnóstico.
+- **UX: ahora al seleccionar una cinta se hace automáticamente reset + auto-type** del comando `LOAD ""` en el Spectrum. La secuencia completa es:
+  1. `LoadTapeFromPath(path)` — carga el .tap/.tzx
+  2. `ResetCpu()` — reinicia el Spectrum (muestra copyright + prompt BASIC)
+  3. Espera 1.5 segundos (a que termine el boot)
+  4. Pulsa `J` + Enter (entrada de comando BASIC como en un Spectrum real)
+  5. Teclea `LOAD ""` + Enter → arranca la carga
+- Toast visual de confirmación/error: `▶ cinta.tzx cargado` o `No se pudo cargar la cinta: ...`.
+
 ## [1.3.1] - 2026-10-11
 
 ### Cambiado

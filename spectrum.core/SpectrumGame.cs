@@ -497,13 +497,20 @@ public class SpectrumGame : Game
     {
         try
         {
+            logger.Info($"[TAPE] Intentando cargar: {path}");
+            logger.Info($"[TAPE] Existe: {System.IO.File.Exists(path)}");
             if (!assets.Exists(path))
             {
                 logger.Error($"[TAPE] No se encontró la cinta: {path}");
                 return false;
             }
             var bytes = assets.ReadAllBytes(path);
-            if (bytes == null) return false;
+            if (bytes == null)
+            {
+                logger.Error($"[TAPE] ReadAllBytes devolvió null: {path}");
+                return false;
+            }
+            logger.Info($"[TAPE] Leídos {bytes.Length} bytes");
             return LoadTapeFromBytes(bytes, path);
         }
         catch (Exception ex)
@@ -564,7 +571,20 @@ public class SpectrumGame : Game
     public void TypeLoadCommand()
     {
         ReleaseAllVirtualKeys();
-        TypeString("LOAD\"\"\n", frameDelayBetweenChars: 6);
+        typeStringBuffer = null;
+        typeStringCharIndex = 0;
+        typeStringFrameDelay = 6;
+        TypeString("J\nLOAD\"\"\n");
+        typeStringFrameCounter = -75;
+    }
+
+    public bool LoadTapeAndAutoType(string path)
+    {
+        var ok = LoadTapeFromPath(path);
+        if (!ok) return false;
+        ResetCpu();
+        TypeLoadCommand();
+        return true;
     }
 
     public void TypeString(string s, int frameDelayBetweenChars = 8)

@@ -336,16 +336,19 @@ namespace retro.spectrum.android
 
         private void LoadTapeFromPath(string path, string? displayName)
         {
-            Dbg.I($"Cinta seleccionada: {displayName} -> {path}");
-            if (_game != null)
+            Dbg.I($"LoadTapeFromPath: {displayName} -> {path}");
+            if (_game == null) return;
+
+            bool loaded = _game.LoadTapeAndAutoType(path);
+            if (loaded)
             {
-                bool loaded = _game.LoadTapeFromPath(path);
-                if (loaded)
-                {
-                    _game.ToggleTape();
-                    UpdateStatusBar();
-                }
+                ShowToast($"▶ {_game.LoadedTapeName} cargado");
             }
+            else
+            {
+                ShowToast($"No se pudo cargar la cinta: {displayName ?? path}");
+            }
+            UpdateStatusBar();
         }
 
         private void ShowToast(string message)

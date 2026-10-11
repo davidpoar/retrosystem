@@ -20,6 +20,11 @@ public sealed class AndroidAssetProvider : IAssetProvider
 
     public bool Exists(string relativePath)
     {
+        if (string.IsNullOrEmpty(relativePath)) return false;
+        if (Path.IsPathRooted(relativePath))
+        {
+            if (File.Exists(relativePath)) return true;
+        }
         var assetPath = $"{AssetRoot}/{relativePath}";
         if (TryReadAsset(assetPath) != null) return true;
         var external = Path.Combine(_externalCacheDir, relativePath);
@@ -28,6 +33,11 @@ public sealed class AndroidAssetProvider : IAssetProvider
 
     public byte[]? ReadAllBytes(string relativePath)
     {
+        if (string.IsNullOrEmpty(relativePath)) return null;
+        if (Path.IsPathRooted(relativePath))
+        {
+            if (File.Exists(relativePath)) return File.ReadAllBytes(relativePath);
+        }
         var assetPath = $"{AssetRoot}/{relativePath}";
         var fromAsset = TryReadAsset(assetPath);
         if (fromAsset != null) return fromAsset;
