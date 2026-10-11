@@ -53,6 +53,7 @@ public class SpectrumGame : Game
 
     public bool FastLoadEnabled => fastLoad;
     public bool IsRomLoaded => isRomLoaded;
+    public string? LastTapeError { get; private set; }
 
     private DynamicSoundEffectInstance? soundInstance;
     private bool audioEnabled = false;
@@ -495,42 +496,50 @@ public class SpectrumGame : Game
 
     public bool LoadTapeFromPath(string path)
     {
+        LastTapeError = null;
         try
         {
             logger.Info($"[TAPE] LoadTapeFromPath: {path}");
             bool directExists = System.IO.File.Exists(path);
             logger.Info($"[TAPE] File.Exists directo: {directExists}");
 
-            if (!assets.Exists(path))
+            byte[]? bytes = null;
+            if (directExists)
             {
-                logger.Error($"[TAPE] assets.Exists dijo false: {path}");
-                if (directExists)
+                try
                 {
-                    logger.Info("[TAPE] Pero File.Exists dijo true — leyendo directamente");
-                    try
-                    {
-                        var rawBytes = System.IO.File.ReadAllBytes(path);
-                        return LoadTapeFromBytes(rawBytes, path);
-                    }
-                    catch (Exception ex2)
-                    {
-                        logger.Error($"[TAPE] Lectura directa falló: {ex2.Message}");
-                        return false;
-                    }
+                    bytes = System.IO.File.ReadAllBytes(path);
+                    logger.Info($"[TAPE] Leídos {bytes.Length} bytes directamente");
                 }
-                return false;
+                catch (Exception exRead)
+                {
+                    LastTapeError = $"No se pudo leer el archivo: {exRead.Message}";
+                    logger.Error($"[TAPE] Lectura directa falló: {exRead.Message}");
+                }
             }
-            var bytes = assets.ReadAllBytes(path);
-            if (bytes == null)
+            else if (assets.Exists(path))
             {
-                logger.Error($"[TAPE] ReadAllBytes devolvió null: {path}");
+                bytes = assets.ReadAllBytes(path);
+            }
+            else
+            {
+                LastTapeError = $"Archivo no encontrado: {path}";
+                logger.Error($"[TAPE] Archivo no existe: {path}");
                 return false;
             }
-            logger.Info($"[TAPE] Leídos {bytes.Length} bytes");
+
+            if (bytes == null || bytes.Length == 0)
+            {
+                LastTapeError = "Archivo vacío o ilegible";
+                logger.Error($"[TAPE] bytes es null o vacío");
+                return false;
+            }
+
             return LoadTapeFromBytes(bytes, path);
         }
         catch (Exception ex)
         {
+            LastTapeError = ex.Message;
             logger.Error($"[TAPE] Error cargando {path}: {ex.Message}");
             return false;
         }
@@ -540,7 +549,15 @@ public class SpectrumGame : Game
     {
         try
         {
+            logger.Info($"[TAPE] LoadTapeFromBytes: {name} ({tapeBytes.Length} bytes)");
             tapeFile = TapeFile.Load(tapeBytes, name);
+            if (tapeFile == null)
+            {
+                LastTapeError = "TapeFile.Load devolvió null (¿formato no soportado?)";
+                logger.Error("[TAPE] TapeFile.Load devolvió null");
+                return false;
+            }
+            logger.Info($"[TAPE] TapeFile parseado: {tapeFile.Blocks.Count} bloques");
             tapePlayer = new TapePlayer(3_500_000);
             tapePlayer.Insert(tapeFile);
             loadedTzxPath = name;
@@ -554,7 +571,13 @@ public class SpectrumGame : Game
         }
         catch (Exception ex)
         {
-            logger.Error($"[TAPE] Error cargando {name}: {ex.Message}");
+            LastTapeError = ex.Message;
+            logger.Error($"[TAPE] Error cargando {name}: {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                LastTapeError += $" → {ex.InnerException.Message}";
+                logger.Error($"[TAPE] Inner: {ex.InnerException.Message}");
+            }
             return false;
         }
     }

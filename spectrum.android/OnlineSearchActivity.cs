@@ -162,15 +162,13 @@ public class OnlineSearchActivity : Activity
 
         var url = _client.MakeAbsoluteUrl(file.Path);
         var safeName = SanitizeFileName(hit.Source.Title);
-        var ext = file.Path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
+        bool isZip = file.Path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+        string ext = isZip
             ? GetInnerExt(file.Path)
             : System.IO.Path.GetExtension(file.Path);
-        var localFileName = $"{safeName}{ext}";
-
-        if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
-        {
-            localFileName = $"{safeName}_temp.zip";
-        }
+        string localFileName = isZip
+            ? $"{safeName}_temp.zip"
+            : $"{safeName}{ext}";
 
         var localPath = System.IO.Path.Combine(CacheDirPath, localFileName);
 
@@ -183,10 +181,17 @@ public class OnlineSearchActivity : Activity
         try
         {
             var bytes = await _client.DownloadFileAsync(url, null, ct);
+            Android.Util.Log.Info("OnlineSearch", $"Descargado: {bytes.Length} bytes a {localPath}");
+
+            if (bytes.Length < 100)
+            {
+                throw new Exception($"Descarga demasiado pequeña ({bytes.Length} bytes), ¿URL incorrecta?");
+            }
+
             await System.IO.File.WriteAllBytesAsync(localPath, bytes, ct);
 
             string finalPath = localPath;
-            if (localPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            if (isZip)
             {
                 try
                 {
@@ -199,11 +204,17 @@ public class OnlineSearchActivity : Activity
                         finalPath = System.IO.Path.Combine(CacheDirPath, $"{safeName}{System.IO.Path.GetExtension(entry.FullName)}");
                         entry.ExtractToFile(finalPath, overwrite: true);
                         System.IO.File.Delete(localPath);
+                        Android.Util.Log.Info("OnlineSearch", $"Extraído: {entry.FullName} → {finalPath}");
+                    }
+                    else
+                    {
+                        throw new Exception("El zip no contiene archivos .tap ni .tzx");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Android.Util.Log.Warn("OnlineSearch", $"No se pudo descomprimir: {ex.Message}");
+                    Android.Util.Log.Warn("OnlineSearch", $"Error al descomprimir: {ex.Message}");
+                    throw new Exception($"Zip inválido: {ex.Message}");
                 }
             }
 
@@ -288,7 +299,12 @@ public class OnlineSearchActivity : Activity
     {
         var name = System.IO.Path.GetFileNameWithoutExtension(zipPath);
         var dot = name.LastIndexOf('.');
-        return dot > 0 ? name.Substring(dot) : ".tap";
+        if (dot > 0)
+        {
+            var ext = name.Substring(dot).ToLowerInvariant();
+            if (ext == ".tap" || ext == ".tzx") return ext;
+        }
+        return ".tap";
     }
 
     public override void OnBackPressed()

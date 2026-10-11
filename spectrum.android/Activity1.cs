@@ -362,20 +362,21 @@ namespace retro.spectrum.android
 
             if (!System.IO.File.Exists(path))
             {
-                ShowToast($"Error: archivo no existe: {path}");
+                ShowToast($"Error: archivo no existe");
                 Dbg.E($"Archivo no existe: {path}");
                 return;
             }
 
             bool loaded = _game.LoadTapeAndAutoType(path);
-            ShowToast(loaded ? $"▶ {_game.LoadedTapeName} cargado" : $"Falló carga: {displayName ?? path}");
             if (loaded)
             {
                 ShowToast($"▶ {_game.LoadedTapeName} cargado");
             }
             else
             {
-                ShowToast($"No se pudo cargar la cinta: {displayName ?? path}");
+                string error = _game.LastTapeError ?? "desconocido";
+                ShowToast($"✗ {displayName ?? path}: {error}");
+                Dbg.E($"Carga falló: {error}");
             }
             UpdateStatusBar();
         }
