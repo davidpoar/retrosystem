@@ -1,0 +1,29 @@
+## .NET / VS
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+*.log
+launchSettings.json
+
+## Android
+local.properties
+*.keystore
+*.jks
+*.apk
+*.aab
+*.idsig
+
+# Permitir APKs precompilados en la carpeta de releases
+!releases/*.apk
+!releases/*.idsig
+
+## Build artifacts
+TestResults/
+coverage*/
+
+## OS
+Thumbs.db
+.DS_Store

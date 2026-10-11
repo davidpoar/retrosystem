@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="Z80/Z80.csproj" />
+  <Project Path="Tape/Tape.csproj" />
+  <Project Path="common/common.csproj" />
+  <Project Path="spectrum.core/spectrum.core.csproj" />
+  <Project Path="spectrum/spectrum.csproj" />
+  <Project Path="spectrum.android/spectrum.android.csproj" />
+</Solution>

@@ -1,0 +1,2 @@
+Place 48.rom (16 KB ZX Spectrum ROM) here.
+Place .tap/.tzx files alongside or in a writable subfolder (the app also looks in the external cache dir).

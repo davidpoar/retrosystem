@@ -1,0 +1,213 @@
+# RetroSystem
+
+Emulador de **ZX Spectrum 48K** y (próximamente) **MSX1** para escritorio (Windows, Linux, macOS) y **Android**, escrito en **C# / .NET 10** con **MonoGame**.
+
+![Logo](spectrum.android/Resources/Drawable/Icon.png)
+
+---
+
+## Estado actual: Spectrum v1
+
+Esta primera versión entrega un emulador **totalmente funcional** del ZX Spectrum 48K con:
+
+- **CPU Z80** emulada con timing de 3,5 MHz, contención de memoria ULA y raster exacto.
+- **ULA de vídeo**: pantalla 256×192 con atributos (ink / paper / bright / flash), borde dinámico que muestra las clásicas barras de carga horizontales.
+- **Audio del beeper** (escritorio) con modelo analógico Chris-Smith (mezcla EAR/MIC + filtro RC).
+- **Carga de cintas** en formatos `.TAP` y `.TZX` (con Fast Load opcional interceptando la rutina LD-BYTES en `0x0556`).
+- **Teclado completo** mapeado a la matriz de 8×5 teclas del Spectrum.
+- **Controles táctiles** en Android: D-pad (QAOP), botones A/B, y **teclado QWERTY en pantalla** con modificadores SHIFT/SYM.
+
+> **Aviso sobre la ROM**: el emulador **no incluye** la ROM del Spectrum (es código con copyright de Sinclair Research Ltd, 1982). Debes colocar tu propio `48.rom` (16 KB) en `spectrum/` (escritorio) o en `Assets/spectrum/` antes de compilar el APK de Android.
+
+---
+
+## Estructura del repositorio
+
+```
+retrosystem/
+├── Z80/                  # CPU Z80 (núcleo reutilizable)
+├── Tape/                 # Biblioteca TZX/TAP/TSX
+├── common/               # Abstracciones (IAssetProvider, ILogger)
+├── spectrum.core/        # Spectrum emulador (multi-target: net10.0 + net10.0-android)
+├── spectrum/             # Launcher de escritorio (CLI)
+├── spectrum.android/     # Aplicación Android con UI táctil
+├── docs/                 # (próximamente) notas de diseño
+└── releases/             # APKs compilados listos para distribuir
+```
+
+---
+
+## Cómo ejecutar (escritorio)
+
+### 1. Preparar la ROM
+
+Descarga o consigue el archivo **`48.rom`** (16 KB) y cópialo a la carpeta `spectrum/` junto al ejecutable.
+
+### 2. Compilar y ejecutar
+
+```powershell
+# Desde la raíz del repositorio
+dotnet build spectrum/spectrum.csproj
+dotnet run --project spectrum/spectrum.csproj
+```
+
+### 3. Cargar una cinta
+
+```powershell
+dotnet run --project spectrum/spectrum.csproj -- -t spectrum\mi_juego.tzx
+```
+
+Añade `-f` para usar la **carga rápida** (sin esperar los tiempos de audio de la cinta):
+
+```powershell
+dotnet run --project spectrum/spectrum.csproj -- -t spectrum\mi_juego.tzx -f
+```
+
+### 4. Controles de escritorio
+
+| Tecla | Acción |
+|-------|--------|
+| Teclado del PC | Matriz completa del Spectrum (mapeada fila a fila) |
+| **F1** | Play / Pause de la cinta |
+| **F2** | Rebobinar la cinta al inicio |
+| **Esc** | Salir del emulador |
+
+---
+
+## Cómo ejecutar (Android)
+
+### 1. Compilar el APK
+
+```powershell
+dotnet build spectrum.android/spectrum.android.csproj -c Release -f net10.0-android
+```
+
+El APK firmado se genera en:
+
+```
+spectrum.android/bin/Release/net10.0-android/net.retrosystem.spectrum-Signed.apk
+```
+
+### 2. Instalar en el dispositivo
+
+```powershell
+adb install -r spectrum.android/bin/Release/net10.0-android/net.retrosystem.spectrum-Signed.apk
+```
+
+### 3. Empaquetar la ROM y cintas
+
+- **ROM**: coloca `48.rom` en `spectrum.android/Assets/spectrum/` y vuelve a compilar (queda empaquetada dentro del APK).
+- **Cintas (.tap / .tzx)**: cópialas al almacenamiento externo del dispositivo, por ejemplo:
+
+```powershell
+adb push mi_juego.tzx /sdcard/Android/data/net.retrosystem.spectrum/cache/
+```
+
+El emulador busca cintas primero en el bundle de assets, luego en el **caché externo** de la app.
+
+### 4. Controles táctiles
+
+| Botón en pantalla | Tecla del Spectrum | Uso típico |
+|-------------------|--------------------|------------|
+| **D-pad ▲▼◄►** | Q / A / O / P | Movimiento (joystick QAOP) |
+| **A** (verde) | SPACE | Acción principal (disparar / saltar) |
+| **B** (rojo) | M | Acción secundaria |
+| **KBD** | (muestra/oculta teclado) | Abre el teclado QWERTY en pantalla |
+| **TAPE** | (toggle play/pause) | Control de cinta |
+| **Teclado QWERTY** | Teclas equivalentes | Permite escribir `LOAD ""` y demás comandos BASIC |
+| **SHIFT** en teclado | CAPS SHIFT | Mayúsculas / símbolos |
+| **SYM** en teclado | SYMBOL SHIFT | Símbolo Shift (puntuación) |
+
+El teclado en pantalla replica el layout QWERTY estándar pero cada tecla genera el evento correcto de la matriz del Spectrum. Los modificadores **SHIFT** y **SYM** (Symbol Shift) son botones toggle que se quedan pulsados al pulsarlos.
+
+---
+
+## Descargar APK precompilado
+
+Visita la página de [Releases](../../releases) y descarga el último `spectrum-v*.apk`.
+
+> Los APKs publicados están firmados con la clave de depuración de .NET (válidos para instalar en cualquier dispositivo con "Orígenes desconocidos" habilitado, **no son aptos para Google Play**).
+
+---
+
+## Requisitos
+
+- **.NET SDK 10.0** (descarga desde [dotnet.microsoft.com](https://dotnet.microsoft.com/download))
+- Para Android: **SDK de Android** (se instala automáticamente con el workload `net10.0-android` de .NET)
+- Drivers ADB si quieres instalar vía USB (incluidos en *Android Platform Tools*)
+
+```powershell
+# Verificar SDK
+dotnet --list-sdks
+```
+
+---
+
+## Comandos útiles
+
+```powershell
+# Compilar todo (escritorio + Android)
+dotnet build retrosystem.slnx
+
+# Solo el Spectrum escritorio
+dotnet build spectrum/spectrum.csproj
+
+# Solo el APK de Android (debug)
+dotnet build spectrum.android/spectrum.android.csproj
+
+# APK de Android (release, optimizado con AOT)
+dotnet build spectrum.android/spectrum.android.csproj -c Release -f net10.0-android
+
+# Instalar / lanzar
+adb install -r spectrum.android/bin/Debug/net10.0-android/net.retrosystem.spectrum-Signed.apk
+adb shell am start -n net.retrosystem.spectrum/crc6431ebdb18024b6c91.Activity1
+
+# Ver logs de la app
+adb logcat -s Spectrum SpectrumDBG "*:S"
+```
+
+---
+
+## Próximos pasos (roadmap)
+
+- [ ] **MSX1** (v2): portar el emulador MSX existente de z80emu a la misma arquitectura multi-target.
+- [ ] **Audio del beeper en Android** (v2): el actual usa `DynamicSoundEffectInstance` de MonoGame; en Android requiere afinación de buffers.
+- [ ] **Gestor de cintas integrado** (v2): selector visual de `.tap`/`.tzx` desde la app, sin necesidad de ADB.
+- [ ] **Guardar / cargar snapshots** (v2): estado completo (Z80 + ULA + RAM 48K) en `.z80`/`.sna`.
+- [ ] **Joystick físico** (v3): soporte para gamepads Bluetooth en Android (mapeo automático a QAOP).
+- [ ] **128K** (v3): modelo de Spectrum 128K con paginación de memoria y chip AY.
+
+---
+
+## Créditos y licencias
+
+- **Código base**: derivado del proyecto personal `z80emu` del mismo autor. El núcleo Z80, la biblioteca Tape y las abstracciones comunes proceden de dicho proyecto.
+- **MonoGame**: el renderizado y el audio se realizan con [MonoGame](http://monogame.net) (licencia MS-PL). Copyright © 2004–2024 MonoGame Team.
+- **ZX Spectrum**: la arquitectura del hardware emulado es obra de Sinclair Research Ltd (1982). Esta aplicación **no incluye la ROM original** por motivos de copyright; el usuario debe aportar su propia copia para uso personal.
+- **Documentación técnica de la ULA**: basado en el libro de Chris Smith *"The ZX Spectrum ULA: How to Design a Microcomputer"*.
+
+### Licencia de este proyecto
+
+```
+MIT License
+
+Copyright (c) 2026 davidpoar
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
