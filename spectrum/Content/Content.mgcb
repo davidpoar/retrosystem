@@ -12,7 +12,7 @@
 #---------------------------------- Content ---------------------------------#
 
 #begin Default.spritefont
-/importer:TextureImporter
+/importer:FontDescriptionImporter
 /processor:FontTextureProcessor
 /processorParam:TextureFormat=Compressed
 /build:Default.spritefont

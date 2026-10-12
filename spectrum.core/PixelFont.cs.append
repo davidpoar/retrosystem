@@ -1,0 +1,115 @@
+
+    private void InitPixelFont()
+    {
+        if (pixelFontTexture != null) return;
+
+        const int charW = 5, charH = 7, spacing = 1;
+
+        System.Collections.Generic.Dictionary<char, string> font = new System.Collections.Generic.Dictionary<char, string>
+        {
+            { ' ', "00000" }, { '!', "00100" }, { '"', "00100" },
+            { '#', "11111" }, { '$', "10001" }, { '%', "01001" },
+            { '&', "11011" }, { '\'', "00100" }, { '(', "01010" },
+            { ')', "01010" }, { '*', "00000" }, { '+', "01010" },
+            { ',', "00100" }, { '-', "00010" }, { '.', "00000" },
+            { '/', "00010" }, { '0', "01110" }, { '1', "00100" },
+            { '2', "01100" }, { '3', "11100" }, { '4', "10110" },
+            { '5', "11010" }, { '6', "11011" }, { '7', "01110" },
+            { '8', "11111" }, { '9', "11110" }, { ':', "00100" },
+            { ';', "00100" }, { '<', "00100" }, { '=', "10001" },
+            { '>', "00100" }, { '?', "11100" }, { '@', "01110" },
+            { 'A', "01110" }, { 'B', "00110" }, { 'C', "11010" },
+            { 'D', "10110" }, { 'E', "11111" }, { 'F', "11111" },
+            { 'G', "11011" }, { 'H', "10101" }, { 'I', "01110" },
+            { 'J', "00110" }, { 'K', "10101" }, { 'L', "10000" },
+            { 'M', "10101" }, { 'N', "10101" }, { 'O', "01110" },
+            { 'P', "11110" }, { 'Q', "11110" }, { 'R', "11110" },
+            { 'S', "11010" }, { 'T', "01110" }, { 'U', "10100" },
+            { 'V', "10100" }, { 'W', "10101" }, { 'X', "10101" },
+            { 'Y', "10101" }, { 'Z', "01010" }, { '[', "01010" },
+            { '\\', "00100" }, { ']', "10100" }, { '^', "01010" },
+            { '_', "00000" }, { '`', "00010" }, { 'a', "01110" },
+            { 'b', "00110" }, { 'c', "01010" }, { 'd', "10010" },
+            { 'e', "11110" }, { 'f', "00110" }, { 'g', "11110" },
+            { 'h', "10010" }, { 'i', "00100" }, { 'j', "00110" },
+            { 'k', "00000" }, { 'l', "00010" }, { 'm', "00000" },
+            { 'n', "01010" }, { 'o', "01110" }, { 'p', "00010" },
+            { 'q', "11110" }, { 'r', "00110" }, { 's', "01010" },
+            { 't', "00111" }, { 'u', "10001" }, { 'v', "01010" },
+            { 'w', "00000" }, { 'x', "10010" }, { 'y', "10101" },
+            { 'z', "01010" }
+        };
+
+        int atlasW = (charW + spacing) * font.Count + spacing;
+        int atlasH = charH + spacing * 2;
+        var pixels = new uint[atlasW * atlasH];
+
+        int x = spacing;
+        int charIdx = 0;
+        foreach (var kv in font)
+        {
+            string pattern = kv.Value;
+            for (int row = 0; row < charH; row++)
+            {
+                for (int col = 0; col < charW; col++)
+                {
+                    if (pattern[row * charW + col] == '1')
+                    {
+                        int px = x + col;
+                        int py = spacing + row;
+                        pixels[py * atlasW + px] = 0xFFFFFFFFu;
+                    }
+                }
+            }
+            x += charW + spacing;
+            charIdx++;
+        }
+
+        pixelFontTexture = new Texture2D(GraphicsDevice, atlasW, atlasH);
+        pixelFontTexture.SetData(pixels);
+        pixelFontCharWidth = charW + spacing;
+        pixelFontCharHeight = charH + spacing;
+        pixelFontPatternLookup = font;
+    }
+
+    private int pixelFontCharWidth = 6;
+    private int pixelFontCharHeight = 8;
+    private System.Collections.Generic.Dictionary<char, string>? pixelFontPatternLookup;
+
+    private void DrawText(string text, int x, int y, int scale, Microsoft.Xna.Framework.Color color)
+    {
+        if (pixelFontTexture == null || pixelFontPatternLookup == null) return;
+        int cx = x;
+        foreach (char c in text)
+        {
+            if (c == '\n')
+            {
+                cx = x;
+                y += pixelFontCharHeight * scale;
+                continue;
+            }
+            if (c == ' ' || c == '\t')
+            {
+                cx += pixelFontCharWidth * scale;
+                continue;
+            }
+            if (pixelFontPatternLookup.TryGetValue(c, out string? pattern))
+            {
+                for (int row = 0; row < 7; row++)
+                {
+                    for (int col = 0; col < 5; col++)
+                    {
+                        if (pattern[row * 5 + col] == '1')
+                        {
+                            spriteBatch.Draw(pixelFontTexture,
+                                new Microsoft.Xna.Framework.Rectangle(
+                                    cx + col * scale, y + row * scale, scale, scale),
+                                Microsoft.Xna.Framework.Color.White * color);
+                        }
+                    }
+                }
+            }
+            cx += pixelFontCharWidth * scale;
+        }
+    }
+

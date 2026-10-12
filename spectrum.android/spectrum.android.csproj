@@ -13,7 +13,7 @@
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <AndroidUseFastDeployment>false</AndroidUseFastDeployment>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
-  </PropertyGroup>
+  </PropertyGroup>a
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.Android" Version="3.8.*" />
   </ItemGroup>

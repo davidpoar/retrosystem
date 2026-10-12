@@ -5,11 +5,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>retro.spectrum.host</RootNamespace>
+    <MonoGameContentBuilderExe>$(MonoGameToolsPath)MGCB.exe</MonoGameContentBuilderExe>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\spectrum.core\spectrum.core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.4.1" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.4.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <MonoGameContentReference Include="Content\Content.mgcb" />
   </ItemGroup>
 </Project>
